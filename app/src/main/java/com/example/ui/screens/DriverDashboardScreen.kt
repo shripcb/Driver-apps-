@@ -37,6 +37,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.delay
 import com.example.data.model.Trip
 import com.example.ui.viewmodel.ActiveJobState
 import com.example.ui.viewmodel.DriverProfile
@@ -77,93 +81,167 @@ fun DriverDashboardScreen(
 
     var currentTab by remember { mutableStateOf(0) } // 0: Home, 1: Discover, 2: Earnings, 3: Inbox, 4: Menu
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier
-                    .testTag("bottom_nav_bar")
-                    .windowInsetsPadding(WindowInsets.navigationBars),
-                tonalElevation = 8.dp
+    var showSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(2200)
+        showSplash = false
+    }
+
+    if (showSplash) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(24.dp)
             ) {
-                NavigationBarItem(
-                    selected = currentTab == 0,
-                    onClick = { currentTab = 0 },
-                    icon = { Icon(if (currentTab == 0) Icons.Default.Home else Icons.Default.Home, contentDescription = "Home Tab") },
-                    label = { Text("Home") },
-                    modifier = Modifier.testTag("nav_tab_home")
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier.size(180.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo_foreground_1781815070116),
+                        contentDescription = "Shri Krishna Driver Logo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Shri Krishna",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF1E3A8A)
                 )
-                NavigationBarItem(
-                    selected = currentTab == 1,
-                    onClick = { currentTab = 1 },
-                    icon = { Icon(Icons.Default.Explore, contentDescription = "Discover Tab") },
-                    label = { Text("Discover") },
-                    modifier = Modifier.testTag("nav_tab_discover")
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "DRIVER COMPANION",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF64748B),
+                    letterSpacing = 2.sp
                 )
-                NavigationBarItem(
-                    selected = currentTab == 2,
-                    onClick = { currentTab = 2 },
-                    icon = { Icon(Icons.Default.Payments, contentDescription = "Earnings Tab") },
-                    label = { Text("Earnings") },
-                    modifier = Modifier.testTag("nav_tab_earnings")
-                )
-                NavigationBarItem(
-                    selected = currentTab == 3,
-                    onClick = { currentTab = 3 },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                Badge(
-                                    containerColor = Color(0xFF2563EB),
-                                    contentColor = Color.White
-                                ) {
-                                    Text("20")
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Email, contentDescription = "Inbox Tab")
-                        }
-                    },
-                    label = { Text("Inbox") },
-                    modifier = Modifier.testTag("nav_tab_inbox")
-                )
-                NavigationBarItem(
-                    selected = currentTab == 4,
-                    onClick = { currentTab = 4 },
-                    icon = { Icon(Icons.Default.Menu, contentDescription = "Menu Tab") },
-                    label = { Text("Menu") },
-                    modifier = Modifier.testTag("nav_tab_menu")
+                Spacer(modifier = Modifier.height(36.dp))
+                CircularProgressIndicator(
+                    color = Color(0xFF1E3A8A),
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                when (currentTab) {
-                    0 -> HomeTabContent(
-                        isOnline = isOnline,
-                        activeJobState = activeJobState,
-                        viewModel = viewModel,
-                        completedTripsSize = completedTrips.size,
-                        todayRevenue = completedTrips.sumOf { it.payout },
-                        onlineSeconds = onlineSeconds,
-                        profile = profile
-                    )
-                    1 -> DiscoverTabContent(viewModel = viewModel)
-                    2 -> EarningsTabContent(
-                        completedTrips = completedTrips,
-                        viewModel = viewModel
-                    )
-                    3 -> InboxTabContent(viewModel = viewModel)
-                    4 -> MenuTabContent(
-                        profile = profile,
-                        viewModel = viewModel
-                    )
+    } else {
+        val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+        if (currentUser == null) {
+            DriverAuthScreen(viewModel = viewModel)
+        } else {
+            Scaffold(
+                modifier = modifier.fillMaxSize(),
+                bottomBar = {
+                    NavigationBar(
+                        modifier = Modifier
+                            .testTag("bottom_nav_bar")
+                            .windowInsetsPadding(WindowInsets.navigationBars),
+                        tonalElevation = 8.dp
+                    ) {
+                        NavigationBarItem(
+                            selected = currentTab == 0,
+                            onClick = { currentTab = 0 },
+                            icon = { Icon(if (currentTab == 0) Icons.Default.Home else Icons.Default.Home, contentDescription = "Home Tab") },
+                            label = { Text("Home") },
+                            modifier = Modifier.testTag("nav_tab_home")
+                        )
+                        NavigationBarItem(
+                            selected = currentTab == 1,
+                            onClick = { currentTab = 1 },
+                            icon = { Icon(Icons.Default.Explore, contentDescription = "Discover Tab") },
+                            label = { Text("Discover") },
+                            modifier = Modifier.testTag("nav_tab_discover")
+                        )
+                        NavigationBarItem(
+                            selected = currentTab == 2,
+                            onClick = { currentTab = 2 },
+                            icon = { Icon(Icons.Default.Payments, contentDescription = "Earnings Tab") },
+                            label = { Text("Earnings") },
+                            modifier = Modifier.testTag("nav_tab_earnings")
+                        )
+                        NavigationBarItem(
+                            selected = currentTab == 3,
+                            onClick = { currentTab = 3 },
+                            icon = {
+                                BadgedBox(
+                                    badge = {
+                                        Badge(
+                                            containerColor = Color(0xFF2563EB),
+                                            contentColor = Color.White
+                                        ) {
+                                            Text("20")
+                                        }
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Email, contentDescription = "Inbox Tab")
+                                }
+                            },
+                            label = { Text("Inbox") },
+                            modifier = Modifier.testTag("nav_tab_inbox")
+                        )
+                        NavigationBarItem(
+                            selected = currentTab == 4,
+                            onClick = { currentTab = 4 },
+                            icon = { Icon(Icons.Default.Menu, contentDescription = "Menu Tab") },
+                            label = { Text("Menu") },
+                            modifier = Modifier.testTag("nav_tab_menu")
+                        )
+                    }
+                }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+                        when (currentTab) {
+                            0 -> Column(modifier = Modifier.fillMaxSize()) {
+                                DriverHudHeader(
+                                    isOnline = isOnline,
+                                    onlineSeconds = onlineSeconds,
+                                    tripsCount = completedTrips.size,
+                                    todayRevenue = completedTrips.sumOf { it.payout },
+                                    profile = profile,
+                                    onToggleOnline = { viewModel.toggleOnline() }
+                                )
+                                HomeTabContent(
+                                    isOnline = isOnline,
+                                    activeJobState = activeJobState,
+                                    viewModel = viewModel,
+                                    completedTripsSize = completedTrips.size,
+                                    todayRevenue = completedTrips.sumOf { it.payout },
+                                    onlineSeconds = onlineSeconds,
+                                    profile = profile,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            1 -> DiscoverTabContent(viewModel = viewModel)
+                            2 -> EarningsTabContent(
+                                completedTrips = completedTrips,
+                                viewModel = viewModel
+                            )
+                            3 -> InboxTabContent(viewModel = viewModel)
+                            4 -> MenuTabContent(
+                                profile = profile,
+                                viewModel = viewModel
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -420,28 +498,14 @@ fun HomeTabContent(
     completedTripsSize: Int,
     todayRevenue: Double,
     onlineSeconds: Long,
-    profile: DriverProfile
+    profile: DriverProfile,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // 1. Bold visual Header representing Online/Offline greeting
-        Column(modifier = Modifier.padding(bottom = 8.dp)) {
-            Text(
-                text = if (isOnline) "You're online" else "You're offline",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Black,
-                color = if (isOnline) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = if (isOnline) "Ready for dispatch!" else "Ready to go?",
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Normal
-            )
-        }
 
         // 2. Map Container with Rounded Corners and local Landmarks text overlays
         Card(
@@ -1006,7 +1070,7 @@ fun SimulationMapCanvas(
         val height = size.height
 
         // 1. Draw grid background texture
-        val gridSize = 60.dp.toPx()
+        val gridSize = (60.dp.toPx()).coerceAtLeast(10f)
         var curX = 0f
         while (curX < width) {
             drawLine(
@@ -1567,6 +1631,47 @@ fun MenuTabContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // App Identity Brand Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo_foreground_1781815070116),
+                        contentDescription = "App Logo",
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Shri Krishna",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF1E3A8A)
+                        )
+                        Text(
+                            text = "DRIVER COMPANION APP",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF64748B),
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+        }
+
         // Driver Level Badge HUD
         item {
             Card(
@@ -1665,6 +1770,102 @@ fun MenuTabContent(
                         modifier = Modifier.fillMaxWidth().height(48.dp).testTag("save_profile_button")
                     ) {
                         Text("SAVE PROFILE CHANGES", fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = { viewModel.logout() },
+                        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("logout_button"),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB91C1C))
+                    ) {
+                        Icon(imageVector = Icons.Default.Logout, contentDescription = "Log Out", tint = Color(0xFFB91C1C))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("LOG OUT OF PROFILE", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Sound and Alert Settings
+        item {
+            val appSoundsEnabled by viewModel.appSoundsEnabled.collectAsStateWithLifecycle()
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("sound_settings_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = "Notification Icons",
+                            tint = Color(0xFF1E3A8A)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Notification Sound Alerts",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E293B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Enable or disable audio sound alerts when a new duty request / trip offer arrives dynamically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFEEF2F6))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Trip Offer Sound Warning",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF1E293B)
+                            )
+                            Text(
+                                text = "Plays alarm ring when trip arrives",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = appSoundsEnabled,
+                            onCheckedChange = { viewModel.toggleAppSounds() },
+                            modifier = Modifier.testTag("sound_toggle_switch")
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = { viewModel.playDispatchSound() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("test_sound_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
+                    ) {
+                        Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Volume Up", tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("TEST NOTIFICATION CHIME", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
                 }
             }

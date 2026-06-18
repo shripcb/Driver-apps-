@@ -1,10 +1,14 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.ToneGenerator
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.database.AppDatabase
 import com.example.data.model.Trip
+import com.example.data.model.UserAccount
 import com.example.data.repository.TripRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -12,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -51,12 +56,130 @@ data class DriverProfile(
 )
 
 class DriverViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: TripRepository
+    private val database = AppDatabase.getDatabase(application)
+    private val repository = TripRepository(database.tripDao())
+    private val userDao = database.userDao()
 
-    init {
-        val database = AppDatabase.getDatabase(application)
-        repository = TripRepository(database.tripDao())
+    // Auth State
+    private val _currentUser = MutableStateFlow<UserAccount?>(null)
+    val currentUser: StateFlow<UserAccount?> = _currentUser.asStateFlow()
+
+    private val _authError = MutableStateFlow<String?>(null)
+    val authError: StateFlow<String?> = _authError.asStateFlow()
+
+    private val _isRegisteredSuccess = MutableStateFlow(false)
+    val isRegisteredSuccess: StateFlow<Boolean> = _isRegisteredSuccess.asStateFlow()
+
+    fun resetAuthError() {
+        _authError.value = null
     }
+
+    fun resetRegistrationSuccess() {
+        _isRegisteredSuccess.value = false
+    }
+
+    fun login(email: String, passwordKey: String, onNavigateHome: () -> Unit = {}) {
+        viewModelScope.launch {
+            _authError.value = null
+            if (email.isBlank() || passwordKey.isBlank()) {
+                _authError.value = "Email and Password cannot be empty!"
+                return@launch
+            }
+            val user = userDao.getUserByEmail(email.trim())
+            if (user == null) {
+                _authError.value = "Account not found! Please register first."
+            } else if (user.passwordKey != passwordKey) {
+                _authError.value = "Incorrect password! Please try again."
+            } else {
+                _currentUser.value = user
+                _profile.value = DriverProfile(
+                    name = user.name,
+                    vehicleModel = user.vehicleModel,
+                    licensePlate = user.licensePlate,
+                    rating = user.rating,
+                    level = user.level
+                )
+                onNavigateHome()
+            }
+        }
+    }
+
+    fun signUp(email: String, passwordKey: String, name: String, vehicleModel: String, licensePlate: String, onNavigateLogin: () -> Unit = {}) {
+        viewModelScope.launch {
+            _authError.value = null
+            if (email.isBlank() || passwordKey.isBlank() || name.isBlank() || vehicleModel.isBlank() || licensePlate.isBlank()) {
+                _authError.value = "All fields are required!"
+                return@launch
+            }
+            val existing = userDao.getUserByEmail(email.trim())
+            if (existing != null) {
+                _authError.value = "This email is already registered!"
+                return@launch
+            }
+            
+            val newUser = UserAccount(
+                email = email.trim(),
+                passwordKey = passwordKey,
+                name = name.trim(),
+                vehicleModel = vehicleModel.trim(),
+                licensePlate = licensePlate.trim()
+            )
+            userDao.insertUser(newUser)
+            _isRegisteredSuccess.value = true
+            onNavigateLogin()
+        }
+    }
+
+    fun logout() {
+        _currentUser.value = null
+        _isOnline.value = false
+        stopOnlineTimers()
+        cancelCurrentSimulation()
+        _activeJobState.value = ActiveJobState.Idle
+    }
+
+    // Sound setting
+    private val _appSoundsEnabled = MutableStateFlow(true)
+    val appSoundsEnabled: StateFlow<Boolean> = _appSoundsEnabled.asStateFlow()
+
+    fun toggleAppSounds() {
+        _appSoundsEnabled.value = !_appSoundsEnabled.value
+    }
+
+    private var soundPlayingJob: kotlinx.coroutines.Job? = null
+
+    fun playDispatchSound() {
+        if (!_appSoundsEnabled.value) return
+        
+        // Use custom background coroutine on Dispatchers.IO to prevent blocking the Main render thread
+        soundPlayingJob?.cancel()
+        soundPlayingJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // 1. Play standard alert beep using ToneGenerator (on notification channel)
+            try {
+                val notificationTone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+                notificationTone.startTone(ToneGenerator.TONE_PROP_BEEP, 250)
+                delay(300)
+                notificationTone.release()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+
+            // 2. Play standard notification sound cleanly via RingtoneManager
+            try {
+                val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+                    ?: android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
+                if (uri != null) {
+                    val ringtone = android.media.RingtoneManager.getRingtone(getApplication(), uri)
+                    if (ringtone != null) {
+                        ringtone.play()
+                    }
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
+    }
+
 
     // Trip logs from database
     val completedTrips: StateFlow<List<Trip>> = repository.allTrips
@@ -97,9 +220,28 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
     private var offerCountdownJob: Job? = null
 
     init {
-        // Pre-populate database with some realistic historical records on empty start
-        viewModelScope.launch {
-            repository.allTrips.collect { list ->
+        // Pre-populate database with default developer/driver account and historical briefs
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val defaultUser = userDao.getUserByEmail("alex@shrikrishna.com")
+                if (defaultUser == null) {
+                    userDao.insertUser(
+                        UserAccount(
+                            email = "alex@shrikrishna.com",
+                            passwordKey = "alex123",
+                            name = "Alex Carter",
+                            vehicleModel = "Toyota Prius Prime (Silver)",
+                            licensePlate = "DRV-137X"
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val list = repository.allTrips.first()
                 if (list.isEmpty()) {
                     val defaultTrips = listOf(
                         Trip(
@@ -138,6 +280,8 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     defaultTrips.forEach { repository.insert(it) }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -238,6 +382,7 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         _activeJobState.value = ActiveJobState.Requested(job, 15)
+        playDispatchSound()
 
         // Countdown timer for offer
         offerCountdownJob?.cancel()
@@ -249,6 +394,9 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
                 val currentState = _activeJobState.value
                 if (currentState is ActiveJobState.Requested && currentState.job.id == job.id) {
                     _activeJobState.value = ActiveJobState.Requested(job, timeLeft)
+                    if (timeLeft % 2 == 0 && timeLeft > 0) {
+                        playDispatchSound()
+                    }
                 } else {
                     break
                 }
@@ -352,6 +500,18 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
             vehicleModel = vehicle,
             licensePlate = plate
         )
+        val user = _currentUser.value
+        if (user != null) {
+            val updatedUser = user.copy(
+                name = name,
+                vehicleModel = vehicle,
+                licensePlate = plate
+            )
+            _currentUser.value = updatedUser
+            viewModelScope.launch {
+                userDao.insertUser(updatedUser)
+            }
+        }
     }
 
     fun clearHistory() {
