@@ -1,0 +1,8 @@
+{
+  "name": "Shri Krishna",
+  "description": "An elegant and fully functional driver companion with realtime navigation simulation, shift logging, earnings metrics, and persistent local job history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
