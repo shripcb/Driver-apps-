@@ -37,6 +37,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import com.example.R
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
@@ -79,14 +86,94 @@ fun DriverDashboardScreen(
     val activeJobState by viewModel.activeJobState.collectAsStateWithLifecycle()
     val profile by viewModel.profile.collectAsStateWithLifecycle()
 
-    var currentTab by remember { mutableStateOf(0) } // 0: Home, 1: Discover, 2: Earnings, 3: Inbox, 4: Menu
-
     var showSplash by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         delay(2200)
         showSplash = false
     }
+
+    val context = LocalContext.current
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+    var hasBgLocationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        hasCameraPermission = permissions[Manifest.permission.CAMERA] == true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hasNotificationPermission = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            hasBgLocationPermission = permissions[Manifest.permission.ACCESS_BACKGROUND_LOCATION] == true
+        }
+    }
+
+    val requestAllPermissions = {
+        val list = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.CAMERA
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        launcher.launch(list.toTypedArray())
+    }
+
+    val requestBgLocationPermission = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            launcher.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+        }
+    }
+
+    LaunchedEffect(showSplash) {
+        if (!showSplash) {
+            requestAllPermissions()
+        }
+    }
+
+    var currentTab by remember { mutableStateOf(0) } // 0: Home, 1: Discover, 2: Earnings, 3: Inbox, 4: Menu
 
     if (showSplash) {
         Box(
@@ -238,7 +325,13 @@ fun DriverDashboardScreen(
                             3 -> InboxTabContent(viewModel = viewModel)
                             4 -> MenuTabContent(
                                 profile = profile,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                hasLocationPermission = hasLocationPermission,
+                                hasCameraPermission = hasCameraPermission,
+                                hasNotificationPermission = hasNotificationPermission,
+                                hasBgLocationPermission = hasBgLocationPermission,
+                                onRequestPermissions = requestAllPermissions,
+                                onRequestBgLocation = requestBgLocationPermission
                             )
                         }
                     }
@@ -978,75 +1071,7 @@ fun HomeTabContent(
             }
         }
 
-        // 3. ZERO COMMISSION PASS PROMO BANNER (Exactly matching the style layout and color details on screenshot)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Promo Pass Info",
-                    tint = Color(0xFFD97706),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Get 0% commission today!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF92400E)
-                    )
-                    Text(
-                        text = "Complete a trip to activate a 24-hour pass",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFB45309)
-                    )
-                }
-            }
-        }
 
-        // 4. Prominent Solid Pill Button: GO ONLINE / GO OFFLINE (Exactly matching blue style on mobile screenshot!)
-        Button(
-            onClick = { viewModel.toggleOnline() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .testTag("toggle_duty_button"),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2563EB)
-            ),
-            shape = RoundedCornerShape(28.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = "Driving Wheel Icon",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = if (isOnline) "Go offline" else "Go online",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
-            }
-        }
     }
 }
 
@@ -1615,11 +1640,63 @@ fun TripHistoryItemRow(
 }
 
 
+@Composable
+fun ProfileFieldRow(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF8FAFC))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = Color(0xFF64748B),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1E293B)
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.Lock,
+            contentDescription = "Locked Field",
+            tint = Color(0xFFCBD5E1),
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+
 // ========================================== TAB 5: MENU AND COCKPIT ==========================================
 @Composable
 fun MenuTabContent(
     profile: DriverProfile,
-    viewModel: DriverViewModel
+    viewModel: DriverViewModel,
+    hasLocationPermission: Boolean,
+    hasCameraPermission: Boolean,
+    hasNotificationPermission: Boolean,
+    hasBgLocationPermission: Boolean,
+    onRequestPermissions: () -> Unit,
+    onRequestBgLocation: () -> Unit
 ) {
     var nameField by remember { mutableStateOf(profile.name) }
     var vehicleField by remember { mutableStateOf(profile.vehicleModel) }
@@ -1721,58 +1798,121 @@ fun MenuTabContent(
             }
         }
 
-        // Edit Profile Details Section
+        // Verified Driver Profile & Credentials Section (Locked)
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().testTag("profile_view_card"),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Driver Vehicle Profile",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = nameField,
-                        onValueChange = { nameField = it },
-                        label = { Text("Driver Name") },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_profile_name"),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = vehicleField,
-                        onValueChange = { vehicleField = it },
-                        label = { Text("Vehicle Spec") },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_profile_specs"),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = licenseField,
-                        onValueChange = { licenseField = it },
-                        label = { Text("License Plate Number") },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_profile_plate"),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { viewModel.updateProfile(nameField, vehicleField, licenseField) },
-                        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("save_profile_button")
+                Column(modifier = Modifier.padding(18.dp)) {
+                    // Security Locked Badge Notice
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFFEF2F2))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("SAVE PROFILE CHANGES", fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Lock Security",
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "PROFILE SECURELY LOCKED",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B)
+                            )
+                            Text(
+                                text = "For safety compliance, driver profile updates are locked. (प्रोफ़ाइल सुरक्षित रूप से लॉक है)",
+                                fontSize = 10.sp,
+                                color = Color(0xFF7F1D1D)
+                            )
+                        }
                     }
 
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Text(
+                        text = "Verified Driver Profile",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // 1. Driver Name Row
+                    ProfileFieldRow(
+                        label = "Driver Name (नाम)",
+                        value = profile.name,
+                        icon = Icons.Default.Person
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // 2. Vehicle Spec Row
+                    ProfileFieldRow(
+                        label = "Vehicle Details (गाड़ी/वाहन विवरण)",
+                        value = profile.vehicleModel,
+                        icon = Icons.Default.DirectionsCar
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 3. License Plate Number Row
+                    ProfileFieldRow(
+                        label = "License Plate Number (वाहन नंबर)",
+                        value = profile.licensePlate,
+                        icon = Icons.Default.CropFree
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 4. Contact Mobile Row (Specified as "number change nahi kar sakta")
+                    ProfileFieldRow(
+                        label = "Verified Mobile Number (मोबाइल नंबर)",
+                        value = "+91 98765-43012",
+                        icon = Icons.Default.Phone
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 5. Driver License ID Row (Specified as "licence ID change nahi kar sakta")
+                    ProfileFieldRow(
+                        label = "Driver License ID (ड्राइवर लाइसेंस नंबर)",
+                        value = "DL-" + profile.licensePlate.replace("-", "").uppercase() + "98",
+                        icon = Icons.Default.VerifiedUser
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Support Help notice
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Support Agent",
+                            tint = Color(0xFF475569),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "To edit any profile parameters, please submit verified credentials to support.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
+                            color = Color(0xFF475569)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     OutlinedButton(
                         onClick = { viewModel.logout() },
@@ -1866,6 +2006,204 @@ fun MenuTabContent(
                         Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Volume Up", tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("TEST NOTIFICATION CHIME", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // Driver App Security & Permissions Center Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("permissions_settings_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = "Shield Icon",
+                            tint = Color(0xFF1E3A8A)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Driver App Security & Permissions",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E293B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Manage system hardware access permissions to allow real-time driver tracking, delivery proofs, and urgent audible alarms.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Location Permission Status Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Location status icon",
+                                tint = if (hasLocationPermission) Color(0xFF10B981) else Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "GPS Location Tracking",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                        Text(
+                            text = if (hasLocationPermission) "Granted" else "Required",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasLocationPermission) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                    // Camera Permission Status Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Camera status icon",
+                                tint = if (hasCameraPermission) Color(0xFF10B981) else Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Camera Profile & Uploads",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                        Text(
+                            text = if (hasCameraPermission) "Granted" else "Required",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasCameraPermission) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                    // Post Notifications Permission Status Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = "Notification status icon",
+                                tint = if (hasNotificationPermission) Color(0xFF10B981) else Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Persistent Push Alerts & Alarms",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                        Text(
+                            text = if (hasNotificationPermission) "Granted" else "Required",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasNotificationPermission) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+
+                    // Background Location Permission Status Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Map,
+                                contentDescription = "Background location status icon",
+                                tint = if (hasBgLocationPermission) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Background Location Run Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                        Text(
+                            text = if (hasBgLocationPermission) "Granted" else "Optional/Not Set",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasBgLocationPermission) Color(0xFF10B981) else Color(0xFFF59E0B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { onRequestPermissions() },
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(44.dp)
+                                .testTag("request_main_permissions_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
+                        ) {
+                            Text("GRANT MAIN ACCESS", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { onRequestBgLocation() },
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(44.dp)
+                                .testTag("request_bg_permission_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569))
+                        ) {
+                            Text("BACKGROUND ACCESS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
