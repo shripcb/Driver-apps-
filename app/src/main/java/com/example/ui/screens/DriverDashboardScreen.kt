@@ -56,6 +56,7 @@ import com.example.ui.viewmodel.JobRequest
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.atan2
+import com.example.ui.theme.*
 
 private data class NavDetailsUi(
     val job: JobRequest?,
@@ -75,6 +76,7 @@ private data class HeaderRouteInfo(
     val lineAngle: Float
 )
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DriverDashboardScreen(
     viewModel: DriverViewModel,
@@ -87,51 +89,28 @@ fun DriverDashboardScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
 
     var showSplash by remember { mutableStateOf(true) }
+    var splashStepIndex by remember { mutableStateOf(0) }
+    val splashSteps = listOf(
+        "Connecting to UNOXIA Elite servers...",
+        "Validating driver session keys...",
+        "Querying Room database local cache...",
+        "Synchronizing PF & Pension ledger accounts...",
+        "Starting GPS tracking trackers..."
+    )
 
     LaunchedEffect(Unit) {
-        delay(2200)
+        while (splashStepIndex < splashSteps.size - 1) {
+            delay(350)
+            splashStepIndex++
+        }
+        delay(350)
         showSplash = false
     }
 
     val context = LocalContext.current
     var hasLocationPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-    var hasNotificationPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
-        )
-    }
-    var hasBgLocationPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
 
@@ -139,47 +118,22 @@ fun DriverDashboardScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-                || permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        hasCameraPermission = permissions[Manifest.permission.CAMERA] == true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            hasNotificationPermission = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            hasBgLocationPermission = permissions[Manifest.permission.ACCESS_BACKGROUND_LOCATION] == true
-        }
-    }
-
-    val requestAllPermissions = {
-        val list = mutableListOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.CAMERA
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            list.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        launcher.launch(list.toTypedArray())
-    }
-
-    val requestBgLocationPermission = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            launcher.launch(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION))
-        }
     }
 
     LaunchedEffect(showSplash) {
         if (!showSplash) {
-            requestAllPermissions()
+            launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
         }
     }
 
-    var currentTab by remember { mutableStateOf(0) } // 0: Home, 1: Discover, 2: Earnings, 3: Inbox, 4: Menu
+    var currentTab by remember { mutableStateOf(0) } // 0: Home, 1: Welfare & Pass, 2: Finance & Wallet, 3: News & Circle, 4: Support & Profile
 
     if (showSplash) {
+        // Uniform Clean Indigo/Teal Splash Window
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White),
+                .background(PremiumBlack),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -187,41 +141,58 @@ fun DriverDashboardScreen(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(24.dp)
             ) {
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    modifier = Modifier.size(180.dp)
+                // Outer clean branding ring
+                Box(
+                    modifier = Modifier
+                        .size(130.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(ObsidianBlack)
+                        .shadow(12.dp, RoundedCornerShape(32.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.app_logo_foreground_1781815070116),
-                        contentDescription = "Shri Krishna Driver Logo",
+                        contentDescription = "UNOXIA Logo",
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp)
+                            .padding(12.dp)
+                            .clip(RoundedCornerShape(20.dp))
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
                 Text(
-                    text = "Shri Krishna",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF1E3A8A)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "DRIVER COMPANION",
-                    fontSize = 12.sp,
+                    text = "UNOXIA",
+                    fontSize = 36.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF64748B),
+                    color = MetallicGold,
                     letterSpacing = 2.sp
                 )
-                Spacer(modifier = Modifier.height(36.dp))
-                CircularProgressIndicator(
-                    color = Color(0xFF1E3A8A),
-                    strokeWidth = 3.dp,
-                    modifier = Modifier.size(24.dp)
+                Text(
+                    text = "DRIVER PROFESSIONAL PORTAL",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GoldMuted,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                CircularProgressIndicator(
+                    color = MetallicGold,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(28.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Crossfade(targetState = splashSteps[splashStepIndex]) { stepText ->
+                    Text(
+                        text = stepText,
+                        fontSize = 12.sp,
+                        color = GrayMuted,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     } else {
@@ -233,58 +204,76 @@ fun DriverDashboardScreen(
                 modifier = modifier.fillMaxSize(),
                 bottomBar = {
                     NavigationBar(
-                        modifier = Modifier
-                            .testTag("bottom_nav_bar")
-                            .windowInsetsPadding(WindowInsets.navigationBars),
-                        tonalElevation = 8.dp
+                        containerColor = ObsidianBlack,
+                        contentColor = MetallicGold,
+                        tonalElevation = 8.dp,
+                        modifier = Modifier.testTag("bottom_nav_bar")
                     ) {
                         NavigationBarItem(
                             selected = currentTab == 0,
                             onClick = { currentTab = 0 },
-                            icon = { Icon(if (currentTab == 0) Icons.Default.Home else Icons.Default.Home, contentDescription = "Home Tab") },
-                            label = { Text("Home") },
+                            icon = { Icon(Icons.Default.DirectionsCar, contentDescription = "Home Tab") },
+                            label = { Text("Console", fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ObsidianBlack,
+                                selectedTextColor = MetallicGold,
+                                indicatorColor = MetallicGold,
+                                unselectedIconColor = GrayMuted,
+                                unselectedTextColor = GrayMuted
+                            ),
                             modifier = Modifier.testTag("nav_tab_home")
                         )
                         NavigationBarItem(
                             selected = currentTab == 1,
                             onClick = { currentTab = 1 },
-                            icon = { Icon(Icons.Default.Explore, contentDescription = "Discover Tab") },
-                            label = { Text("Discover") },
-                            modifier = Modifier.testTag("nav_tab_discover")
+                            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = "Welfare Tab") },
+                            label = { Text("Welfare", fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ObsidianBlack,
+                                selectedTextColor = MetallicGold,
+                                indicatorColor = MetallicGold,
+                                unselectedIconColor = GrayMuted,
+                                unselectedTextColor = GrayMuted
+                            )
                         )
                         NavigationBarItem(
                             selected = currentTab == 2,
                             onClick = { currentTab = 2 },
-                            icon = { Icon(Icons.Default.Payments, contentDescription = "Earnings Tab") },
-                            label = { Text("Earnings") },
-                            modifier = Modifier.testTag("nav_tab_earnings")
+                            icon = { Icon(Icons.Default.Payments, contentDescription = "Finance Tab") },
+                            label = { Text("Earnings", fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ObsidianBlack,
+                                selectedTextColor = MetallicGold,
+                                indicatorColor = MetallicGold,
+                                unselectedIconColor = GrayMuted,
+                                unselectedTextColor = GrayMuted
+                            )
                         )
                         NavigationBarItem(
                             selected = currentTab == 3,
                             onClick = { currentTab = 3 },
-                            icon = {
-                                BadgedBox(
-                                    badge = {
-                                        Badge(
-                                            containerColor = Color(0xFF2563EB),
-                                            contentColor = Color.White
-                                        ) {
-                                            Text("20")
-                                        }
-                                    }
-                                ) {
-                                    Icon(Icons.Default.Email, contentDescription = "Inbox Tab")
-                                }
-                            },
-                            label = { Text("Inbox") },
-                            modifier = Modifier.testTag("nav_tab_inbox")
+                            icon = { Icon(Icons.Default.Forum, contentDescription = "Community Tab") },
+                            label = { Text("Circle", fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ObsidianBlack,
+                                selectedTextColor = MetallicGold,
+                                indicatorColor = MetallicGold,
+                                unselectedIconColor = GrayMuted,
+                                unselectedTextColor = GrayMuted
+                            )
                         )
                         NavigationBarItem(
                             selected = currentTab == 4,
                             onClick = { currentTab = 4 },
-                            icon = { Icon(Icons.Default.Menu, contentDescription = "Menu Tab") },
-                            label = { Text("Menu") },
-                            modifier = Modifier.testTag("nav_tab_menu")
+                            icon = { Icon(Icons.Default.FolderShared, contentDescription = "Support & Settings") },
+                            label = { Text("Portal", fontSize = 11.sp) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = ObsidianBlack,
+                                selectedTextColor = MetallicGold,
+                                indicatorColor = MetallicGold,
+                                unselectedIconColor = GrayMuted,
+                                unselectedTextColor = GrayMuted
+                            )
                         )
                     }
                 }
@@ -293,47 +282,23 @@ fun DriverDashboardScreen(
                     modifier = Modifier
                         .padding(innerPadding)
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(PremiumBlack)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                        when (currentTab) {
-                            0 -> Column(modifier = Modifier.fillMaxSize()) {
-                                DriverHudHeader(
-                                    isOnline = isOnline,
-                                    onlineSeconds = onlineSeconds,
-                                    tripsCount = completedTrips.size,
-                                    todayRevenue = completedTrips.sumOf { it.payout },
-                                    profile = profile,
-                                    onToggleOnline = { viewModel.toggleOnline() }
-                                )
-                                HomeTabContent(
-                                    isOnline = isOnline,
-                                    activeJobState = activeJobState,
-                                    viewModel = viewModel,
-                                    completedTripsSize = completedTrips.size,
-                                    todayRevenue = completedTrips.sumOf { it.payout },
-                                    onlineSeconds = onlineSeconds,
-                                    profile = profile,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            1 -> DiscoverTabContent(viewModel = viewModel)
-                            2 -> EarningsTabContent(
-                                completedTrips = completedTrips,
-                                viewModel = viewModel
-                            )
-                            3 -> InboxTabContent(viewModel = viewModel)
-                            4 -> MenuTabContent(
-                                profile = profile,
-                                viewModel = viewModel,
-                                hasLocationPermission = hasLocationPermission,
-                                hasCameraPermission = hasCameraPermission,
-                                hasNotificationPermission = hasNotificationPermission,
-                                hasBgLocationPermission = hasBgLocationPermission,
-                                onRequestPermissions = requestAllPermissions,
-                                onRequestBgLocation = requestBgLocationPermission
-                            )
-                        }
+                    when (currentTab) {
+                        0 -> HomeCenterTab(
+                            isOnline = isOnline,
+                            activeJobState = activeJobState,
+                            viewModel = viewModel,
+                            completedTripsSize = completedTrips.size,
+                            onlineSeconds = onlineSeconds,
+                            profile = profile,
+                            onEarningClick = { currentTab = 2 },
+                            modifier = Modifier.weight(1f)
+                        )
+                        1 -> WelfareTabContent(viewModel = viewModel)
+                        2 -> FinanceTabContent(completedTrips = completedTrips, viewModel = viewModel)
+                        3 -> CircleTabContent(viewModel = viewModel)
+                        4 -> PortalAuditorTabContent(viewModel = viewModel)
                     }
                 }
             }
@@ -341,2275 +306,1723 @@ fun DriverDashboardScreen(
     }
 }
 
-// ---------------------- DRIVER HUD HEADER ----------------------
-@Composable
-fun DriverHudHeader(
-    isOnline: Boolean,
-    onlineSeconds: Long,
-    tripsCount: Int,
-    todayRevenue: Double,
-    profile: DriverProfile,
-    onToggleOnline: () -> Unit
-) {
-    val hrs = onlineSeconds / 3600
-    val mins = (onlineSeconds % 3600) / 60
-    val secs = onlineSeconds % 60
-    val formattedTime = String.format("%02dh %02dm %02ds", hrs, mins, secs)
+// Format duration helper
+fun formatOnlineDuration(seconds: Long): String {
+    val hrs = seconds / 3600
+    val mins = (seconds % 3600) / 60
+    val secs = seconds % 60
+    return "%02d:%02d:%02d".format(hrs, mins, secs)
+}
 
-    Surface(
+@Composable
+fun HomeHudMiniChip(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
         modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+            .size(width = 110.dp, height = 70.dp)
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Driver Avatar Title Box
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = profile.name.firstOrNull()?.toString() ?: "D",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = profile.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${profile.rating} ★",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "• ${profile.level}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
-
-                // Interactive GO ONLINE pill button
-                Button(
-                    onClick = onToggleOnline,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isOnline) Color(0xFF10B981) else MaterialTheme.colorScheme.error
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .height(44.dp)
-                        .testTag("toggle_duty_button")
-                ) {
-                    Icon(
-                        imageVector = if (isOnline) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
-                        contentDescription = "Duty Status Icon",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isOnline) "GO OFFLINE" else "GO ONLINE",
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp,
-                        fontSize = 12.sp
-                    )
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = title, tint = MetallicGold, modifier = Modifier.size(13.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(title, color = GoldMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Pulse Status Band
-            AnimatedVisibility(
-                visible = isOnline,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFE0F2FE))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Tiny pulsing green dot
-                        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                        val dotAlpha by infiniteTransition.animateFloat(
-                            initialValue = 0.3f,
-                            targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Reverse
-                            ), label = "alpha"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .graphicsLayer(alpha = dotAlpha)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981))
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Awaiting Jobs...",
-                            color = Color(0xFF0369A1),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = "Active Run: $formattedTime",
-                        color = Color(0xFF0369A1),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = !isOnline,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Warning",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "You are currently OFF-DUTY. Go online to find dispatch tasks.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Quick HUD Statistics Counters
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Today's Aggregate Payout
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "TODAY'S PAYOUT",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = String.format("$%.2f", todayRevenue),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF10B981)
-                    )
-                }
-
-                // Total Trips
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "TOTAL SHIFTS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = "$tripsCount completed",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                // Acceptance Rate (Calculated mock)
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "ACCEPT RATE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        text = "97.4%",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(value, color = LightText, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
 
-
-// ========================================== TAB 1: HOME MAP SCREEN ==========================================
+// ---------------------- 0. HOME CONSOLE & ACTIVE DISPATCH RIDES ----------------------
 @Composable
-fun HomeTabContent(
+fun HomeCenterTab(
     isOnline: Boolean,
     activeJobState: ActiveJobState,
     viewModel: DriverViewModel,
     completedTripsSize: Int,
-    todayRevenue: Double,
     onlineSeconds: Long,
     profile: DriverProfile,
+    onEarningClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
+    val walletBalance by viewModel.walletBalance.collectAsStateWithLifecycle()
+    val isSOSActive by viewModel.isSOSActive.collectAsStateWithLifecycle()
+    val driverRank by viewModel.driverRank.collectAsStateWithLifecycle()
 
-        // 2. Map Container with Rounded Corners and local Landmarks text overlays
+    var showSelfiePopup by remember { mutableStateOf(false) }
+    val faceVerified by viewModel.faceVerified.collectAsStateWithLifecycle()
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // Corporate slate header HUD
         Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+            colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+            border = androidx.compose.foundation.BorderStroke(2.dp, BorderGray)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Row 1: Profile & SOS and Switcher
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isOnline) Color(0xFF10B981) else Color(0xFFEF4444))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isOnline) "ONLINE SYSTEM GPS ACTIVE" else "CONSOLE OFFLINE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isOnline) Color(0xFF10B981) else Color(0xFFEF4444)
+                            )
+                        }
+                        Text(
+                            text = profile.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LightText
+                        )
+                    }
+
+                    // Indigo online switch
+                    Button(
+                        onClick = { viewModel.toggleOnline() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isOnline) Color(0xFFEF4444) else MetallicGold
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = if (isOnline) "Go Offline" else "Go Online",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ObsidianBlack
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Stats summaries row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    HomeHudMiniChip(
+                        title = "Earning Wallet",
+                        value = "₹${"%,.2f".format(walletBalance)}",
+                        icon = Icons.Default.AccountBalanceWallet,
+                        onClick = onEarningClick
+                    )
+                    HomeHudMiniChip(
+                        title = "Online Duty",
+                        value = formatOnlineDuration(onlineSeconds),
+                        icon = Icons.Default.AccessTime
+                    )
+                    HomeHudMiniChip(
+                        title = "Rank Badge",
+                        value = "$driverRank VIP",
+                        icon = Icons.Default.Stars
+                    )
+                }
+            }
+        }
+
+        // SOS bar indicator if active
+        if (isSOSActive) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFEF4444))
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Warning, contentDescription = "Emergency SOS", tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "EMERGENCY SOS MODE ACTIVE: REALTIME GPS TRANSMITTED TO CENTRAL DISPATCH HUB",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
-                .shadow(4.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Interactive simulation coordinates map
-                SimulationMapCanvas(
-                    activeJobState = activeJobState,
-                    onCarCoordinateCalculated = { _, _ -> }
-                )
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                // High-contrast City Landmark Text Overlays matching original picture Noida/Delhi coordinates
-                Text(
-                    text = "Noida",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF1E293B),
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(x = 10.dp, y = (-20).dp)
-                )
-
-                Text(
-                    text = "South East Delhi",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF475569),
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .offset(x = 16.dp, y = 64.dp)
-                )
-
-                // Map Overlay icon circles
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(14.dp)
-                        .size(42.dp)
-                        .background(Color.White, CircleShape)
-                        .shadow(2.dp, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CropFree,
-                        contentDescription = "Expand",
-                        tint = Color(0xFF334155)
-                    )
-                }
-
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(14.dp)
-                        .size(42.dp)
-                        .background(Color.White, CircleShape)
-                        .shadow(2.dp, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Area",
-                        tint = Color(0xFF334155)
-                    )
-                }
-
-                // --- INTEGRATED: ACTIVE REQUEST PRESENT OVERLAYS (RINGING MECHANISM) ---
-                if (activeJobState is ActiveJobState.Requested) {
-                    val job = activeJobState.job
-                    val timeLeft = activeJobState.timeLeftSeconds
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .padding(12.dp),
-                        contentAlignment = Alignment.BottomCenter
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(16.dp)
-                                .testTag("job_offer_card"),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(if (job.type == "Ride") Color(0xFF0284C7) else Color(0xFFF97316))
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = job.type.uppercase(),
-                                            color = Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Black,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(if (timeLeft <= 5) Color(0xFFFEE2E2) else Color(0xFFF0FDF4)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "$timeLeft",
-                                            color = if (timeLeft <= 5) Color(0xFFEF4444) else Color(0xFF22C55E),
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = String.format("$%.2f", job.payout),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFF10B981)
-                                )
-                                Text(
-                                    text = "4.9 ★ • ${job.distanceMiles} mi • ${job.durationMinutes} mins",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Navigation,
-                                        contentDescription = "Pickup Location",
-                                        tint = Color(0xFF10B981),
-                                        modifier = Modifier.size(18.dp).rotate(45f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("PICKUP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                        Text(job.pickupAddress, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Navigation,
-                                        contentDescription = "Destination",
-                                        tint = Color(0xFFEF4444),
-                                        modifier = Modifier.size(18.dp).rotate(135f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("DROPOFF", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                        Text(job.dropoffAddress, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.declineOffer() },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .testTag("decline_offer_btn"),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Text("DECLINE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Button(
-                                        onClick = { viewModel.acceptOffer(job) },
-                                        modifier = Modifier
-                                            .weight(1.4f)
-                                            .height(44.dp)
-                                            .testTag("accept_offer_btn"),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Text("ACCEPT DISPATCH", fontWeight = FontWeight.Black, fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // --- INTEGRATED: ACTIVE NAVIGATION IN-PROGRESS CAR CONSOLES ---
-                if (activeJobState is ActiveJobState.Accepted ||
-                    activeJobState is ActiveJobState.EnRouteToPickup ||
-                    activeJobState is ActiveJobState.ArrivedAtPickup ||
-                    activeJobState is ActiveJobState.EnRouteToDropoff ||
-                    activeJobState is ActiveJobState.ArrivedAtDropoff
-                ) {
-                    val uiDetails = remember(activeJobState) {
-                        when (activeJobState) {
-                            is ActiveJobState.Accepted -> {
-                                val requestJob = activeJobState.job
-                                NavDetailsUi(
-                                    requestJob,
-                                    "TASK ACCEPTED",
-                                    "Prepare vehicle and head to customer.",
-                                    "DRIVE TO PICKUP",
-                                    { viewModel.startDriveToPickup(requestJob) }
-                                )
-                            }
-                            is ActiveJobState.EnRouteToPickup -> {
-                                val requestJob = activeJobState.job
-                                NavDetailsUi(
-                                    requestJob,
-                                    "DRIVING TO PICKUP",
-                                    "Navigating corridors toward subscriber.",
-                                    "SPEED UP TO ARRIVAL",
-                                    { viewModel.triggerPickupArrived(requestJob) }
-                                )
-                            }
-                            is ActiveJobState.ArrivedAtPickup -> {
-                                val requestJob = activeJobState.job
-                                NavDetailsUi(
-                                    requestJob,
-                                    "VEHICLE AT PICKUP",
-                                    "Passenger notified. Initiate boarding sequence.",
-                                    "START TRIP",
-                                    { viewModel.startTripAndEnRoute(requestJob) }
-                                )
-                            }
-                            is ActiveJobState.EnRouteToDropoff -> {
-                                val requestJob = activeJobState.job
-                                NavDetailsUi(
-                                    requestJob,
-                                    "TRIP IN PROGRESS",
-                                    "Progressing towards final dropoff point.",
-                                    "ARRIVE",
-                                    {}
-                                )
-                            }
-                            is ActiveJobState.ArrivedAtDropoff -> {
-                                val requestJob = activeJobState.job
-                                NavDetailsUi(
-                                    requestJob,
-                                    "DESTINATION REACHED",
-                                    "Trip finished. Settle payment dispatch.",
-                                    "COMPLETE DISPATCH",
-                                    { viewModel.completeTrip(requestJob) }
-                                )
-                            }
-                            else -> NavDetailsUi(null, "", "", "", {})
-                        }
-                    }
-
-                    uiDetails.job?.let { currentJob ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.2f))
-                                .padding(12.dp),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .shadow(12.dp)
-                                    .testTag("nav_session_car_console"),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(8.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        if (activeJobState is ActiveJobState.ArrivedAtPickup || activeJobState is ActiveJobState.ArrivedAtDropoff)
-                                                            Color(0xFFEF4444) else Color(0xFF22C55E)
-                                                    )
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = uiDetails.headerTitle,
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        Text(text = currentJob.id, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                                    }
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = if (currentJob.type == "Ride") Icons.Default.DirectionsCar else Icons.Default.LocalShipping,
-                                                contentDescription = "Task type",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(text = currentJob.partnerName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text(text = uiDetails.stepInstruction, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    if (activeJobState is ActiveJobState.EnRouteToPickup) {
-                                        LinearProgressIndicator(
-                                            progress = { activeJobState.progress },
-                                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                                            color = Color(0xFF10B981)
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                    } else if (activeJobState is ActiveJobState.EnRouteToDropoff) {
-                                        LinearProgressIndicator(
-                                            progress = { activeJobState.progress },
-                                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                                            color = Color(0xFF3B82F6)
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                    }
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text("Est. Payout", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text(String.format("$%.2f", currentJob.payout), fontWeight = FontWeight.Black, color = Color(0xFF10B981), fontSize = 16.sp)
-                                        }
-
-                                        Button(
-                                            onClick = uiDetails.onActionClick,
-                                            modifier = Modifier
-                                                .height(38.dp)
-                                                .testTag("nav_action_submit_btn"),
-                                            enabled = activeJobState !is ActiveJobState.EnRouteToDropoff,
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (activeJobState is ActiveJobState.ArrivedAtDropoff) Color(0xFF10B981) else MaterialTheme.colorScheme.primary
-                                            )
-                                        ) {
-                                            if (activeJobState is ActiveJobState.EnRouteToDropoff) {
-                                                Icon(Icons.Default.Navigation, "Navulating", modifier = Modifier.size(12.dp).rotate(45f))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("LIVE RIDE...", fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                            } else {
-                                                Text(uiDetails.buttonLabel, fontWeight = FontWeight.Black, fontSize = 11.sp)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // --- INTEGRATED: DISPATCH COMPLETION CHEERS CONSOLE GREETINGS ---
-                if (activeJobState is ActiveJobState.CompletedGreeting) {
-                    val completedJob = activeJobState.job
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(16.dp)
-                                .testTag("completion_greeting_card"),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFDCFCE7)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Payments, "Complete Success", tint = Color(0xFF10B981), modifier = Modifier.size(28.dp))
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text("TRIP SETTLED!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color(0xFF10B981))
-                                Text("Fare deposited successfully to account logs.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-
-                                Spacer(modifier = Modifier.height(12.dp))
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Fare Payout:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(String.format("$%.2f", completedJob.payout), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Sim Mileages:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("${completedJob.distanceMiles} mi", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = { viewModel.dismissGreeting() },
-                                    modifier = Modifier.fillMaxWidth().height(42.dp).testTag("greeting_confirm_dismiss_btn")
-                                ) {
-                                    Text("BACK TO COCKPIT", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-    }
-}
-
-// ---------------------- THE SIMULATION MAP CANVAS ----------------------
-@Composable
-fun SimulationMapCanvas(
-    activeJobState: ActiveJobState,
-    onCarCoordinateCalculated: (Float, Float) -> Unit
-) {
-    val roadBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-    val parkColor = Color(0xFFECFDF5) // soft green for parks
-    val riverColor = Color(0xFFEFF6FF) // soft blue for water body
-
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        val width = size.width
-        val height = size.height
-
-        // 1. Draw grid background texture
-        val gridSize = (60.dp.toPx()).coerceAtLeast(10f)
-        var curX = 0f
-        while (curX < width) {
-            drawLine(
-                color = gridColor,
-                start = Offset(curX, 0f),
-                end = Offset(curX, height),
-                strokeWidth = 2f
-            )
-            curX += gridSize
-        }
-        var curY = 0f
-        while (curY < height) {
-            drawLine(
-                color = gridColor,
-                start = Offset(0f, curY),
-                end = Offset(width, curY),
-                strokeWidth = 2f
-            )
-            curY += gridSize
-        }
-
-        // 2. Draw scenic accents (Park Green zone)
-        drawRect(
-            color = parkColor,
-            topLeft = Offset(width * 0.15f, height * 0.1f),
-            size = Size(width * 0.3f, height * 0.2f)
-        )
-        // Accent river
-        val riverPath = Path().apply {
-            moveTo(0f, height * 0.75f)
-            quadraticTo(width * 0.4f, height * 0.8f, width, height * 0.68f)
-            lineTo(width, height * 0.73f)
-            quadraticTo(width * 0.4f, height * 0.85f, 0f, height * 0.8f)
-            close()
-        }
-        drawPath(path = riverPath, color = riverColor)
-
-        // 3. Draw City Main Road networks
-        val roadStroke = 24.dp.toPx()
-        // Horizontal main boulevard
-        drawLine(
-            color = roadBgColor,
-            start = Offset(0f, height * 0.45f),
-            end = Offset(width, height * 0.45f),
-            strokeWidth = roadStroke
-        )
-        // Vertical interstate
-        drawLine(
-            color = roadBgColor,
-            start = Offset(width * 0.5f, 0f),
-            end = Offset(width * 0.5f, height),
-            strokeWidth = roadStroke
-        )
-        // Diagonal bypass
-        drawLine(
-            color = roadBgColor,
-            start = Offset(0f, 0f),
-            end = Offset(width, height),
-            strokeWidth = roadStroke * 0.4f
-        )
-
-        // Active Routing drawings
-        val (hasRoute, pX, pY, dX, dY, carPos, lineAngle) = when (activeJobState) {
-            is ActiveJobState.Requested -> {
-                val job = activeJobState.job
-                // Scale coordinate relative inside canvas width
-                val startX = (job.pickupX / 300f) * width
-                val startY = (job.pickupY / 300f) * height
-                val endX = (job.dropoffX / 300f) * width
-                val endY = (job.dropoffY / 300f) * height
-                // Default car at middle during offer
-                val car = Offset(width * 0.5f, height * 0.5f)
-                val angle = atan2(endY - startY, endX - startX) * (180f / Math.PI.toFloat())
-                HeaderRouteInfo(true, startX, startY, endX, endY, car, angle)
-            }
-            is ActiveJobState.Accepted -> {
-                val job = activeJobState.job
-                val pickupX = (job.pickupX / 300f) * width
-                val pickupY = (job.pickupY / 300f) * height
-                val startX = width * 0.5f
-                val startY = height * 0.6f
-                val car = Offset(startX, startY)
-                val angle = atan2(pickupY - startY, pickupX - startX) * (180f / Math.PI.toFloat())
-                HeaderRouteInfo(true, startX, startY, pickupX, pickupY, car, angle)
-            }
-            is ActiveJobState.EnRouteToPickup -> {
-                val job = activeJobState.job
-                val pickupX = (job.pickupX / 300f) * width
-                val pickupY = (job.pickupY / 300f) * height
-                val startX = width * 0.5f
-                val startY = height * 0.6f
-                val progress = activeJobState.progress
-                val carCoords = Offset(
-                    startX + (pickupX - startX) * progress,
-                    startY + (pickupY - startY) * progress
-                )
-                val angle = atan2(pickupY - startY, pickupX - startX) * (180f / Math.PI.toFloat())
-                HeaderRouteInfo(true, startX, startY, pickupX, pickupY, carCoords, angle)
-            }
-            is ActiveJobState.ArrivedAtPickup -> {
-                val job = activeJobState.job
-                val pickupX = (job.pickupX / 300f) * width
-                val pickupY = (job.pickupY / 300f) * height
-                val dropoffX = (job.dropoffX / 300f) * width
-                val dropoffY = (job.dropoffY / 300f) * height
-                val car = Offset(pickupX, pickupY)
-                val angle = atan2(dropoffY - pickupY, dropoffX - pickupX) * (180f / Math.PI.toFloat())
-                HeaderRouteInfo(true, pickupX, pickupY, dropoffX, dropoffY, car, angle)
-            }
-            is ActiveJobState.EnRouteToDropoff -> {
-                val job = activeJobState.job
-                val pickupX = (job.pickupX / 300f) * width
-                val pickupY = (job.pickupY / 300f) * height
-                val dropoffX = (job.dropoffX / 300f) * width
-                val dropoffY = (job.dropoffY / 300f) * height
-                val progress = activeJobState.progress
-                val carCoords = Offset(
-                    pickupX + (dropoffX - pickupX) * progress,
-                    pickupY + (dropoffY - pickupY) * progress
-                )
-                val angle = atan2(dropoffY - pickupY, dropoffX - pickupX) * (180f / Math.PI.toFloat())
-                HeaderRouteInfo(true, pickupX, pickupY, dropoffX, dropoffY, carCoords, angle)
-            }
-            is ActiveJobState.ArrivedAtDropoff -> {
-                val job = activeJobState.job
-                val dropoffX = (job.dropoffX / 300f) * width
-                val dropoffY = (job.dropoffY / 300f) * height
-                val car = Offset(dropoffX, dropoffY)
-                HeaderRouteInfo(true, dropoffX, dropoffY, dropoffX, dropoffY, car, 0f)
-            }
-            else -> {
-                // Return defaults
-                HeaderRouteInfo(false, 0f, 0f, 0f, 0f, Offset(width * 0.5f, height * 0.5f), 0f)
-            }
-        }
-
-        // Draw HUD Route Lines
-        if (hasRoute) {
-            // Draw routing path with dashes
-            val dashedEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), 0f)
-            drawLine(
-                color = Color(0xFF3B82F6),
-                start = Offset(pX, pY),
-                end = Offset(dX, dY),
-                strokeWidth = 4.dp.toPx(),
-                pathEffect = dashedEffect
-            )
-
-            // Draw pickup pins
-            drawCircle(
-                color = Color(0xFF10B981),
-                radius = 10.dp.toPx(),
-                center = Offset(pX, pY)
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 4.dp.toPx(),
-                center = Offset(pX, pY)
-            )
-
-            // Draw dropoff pins if different
-            if (pX != dX || pY != dY) {
-                drawCircle(
-                    color = Color(0xFFEF4444),
-                    radius = 10.dp.toPx(),
-                    center = Offset(dX, dY)
-                )
-                drawRect(
-                    color = Color.White,
-                    topLeft = Offset(dX - 3.dp.toPx(), dY - 3.dp.toPx()),
-                    size = Size(6.dp.toPx(), 6.dp.toPx())
-                )
-            }
-        }
-
-        // Draw Interactive Moving vehicle marker with steering arrow direction
-        drawCircle(
-            color = Color(0xFF1E3A8A).copy(alpha = 0.15f),
-            radius = 24.dp.toPx(),
-            center = carPos
-        )
-        drawCircle(
-            color = Color(0xFF3B82F6),
-            radius = 12.dp.toPx(),
-            center = carPos
-        )
-
-        // Vehicle Arrow Directions Pointer
-        val arrowPath = Path().apply {
-            moveTo(carPos.x, carPos.y - 8.dp.toPx())
-            lineTo(carPos.x - 6.dp.toPx(), carPos.y + 6.dp.toPx())
-            lineTo(carPos.x, carPos.y + 3.dp.toPx())
-            lineTo(carPos.x + 6.dp.toPx(), carPos.y + 6.dp.toPx())
-            close()
-        }
-
-        rotate(degrees = lineAngle, pivot = carPos) {
-            drawPath(path = arrowPath, color = Color.White)
-        }
-    }
-}
-
-
-// ========================================== TAB 2: EARNINGS AND LOGS ==========================================
-@Composable
-fun EarningsTabContent(
-    completedTrips: List<Trip>,
-    viewModel: DriverViewModel
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("earnings_records_container")
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Net balance scorecard
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "TOTAL METRICS BALANCE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = String.format("$%.2f", completedTrips.sumOf { it.payout }),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Trips Work", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                            Text("${completedTrips.size}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Miles logged", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                            Text(String.format("%.1f mi", completedTrips.sumOf { it.distanceMiles }), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Avg Pay/Trip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                            val avgPay = if (completedTrips.isNotEmpty()) completedTrips.sumOf { it.payout } / completedTrips.size else 0.0
-                            Text(String.format("$%.2f", avgPay), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Weekly visual column chart
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Weekly Activity Distribution",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    EarningsWeeklyBarChart(completedTrips = completedTrips)
-                }
-            }
-        }
-
-        // Historical Shifts Header Row
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "LATEST LOGGED SHIFTS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-
-                // Trigger Clear Database button instantly
-                Text(
-                    text = "Clear Database",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .clickable { viewModel.clearHistory() }
-                        .padding(vertical = 4.dp, horizontal = 8.dp)
-                )
-            }
-        }
-
-        // Log Lists scroll view
-        if (completedTrips.isEmpty()) {
+            // Active request/navigation canvas
             item {
+                Text(
+                    text = "GPS ROUTE & DISPATCH PANEL",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GoldMuted,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.ClearAll, "Database clean", tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(36.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Shift history database is currently empty. Complete simulated jobs of your online dispatcher to record trip metrics logs.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        } else {
-            items(completedTrips) { log ->
-                TripHistoryItemRow(trip = log, onDeleteClick = { viewModel.clearHistory() })
-            }
-        }
-    }
-}
-
-// ---------------------- NATIVE WEEKLY CHART CANVAS ----------------------
-@Composable
-fun EarningsWeeklyBarChart(completedTrips: List<Trip>) {
-    // Generate simulated aggregates for Mon-Sun
-    val weekdaySums = remember(completedTrips) {
-        val sums = doubleArrayOf(15.0, 45.0, 32.0, 68.0, 92.0, 0.0, 0.0) // preset template history
-        // Add current jobs dynamically to Friday/Thursday depending on day
-        val cal = Calendar.getInstance()
-        completedTrips.forEach { trip ->
-            cal.timeInMillis = trip.timestamp
-            val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) // Sunday=1, Monday=2... Saturday=7
-            val index = when (dayOfWeek) {
-                Calendar.MONDAY -> 0
-                Calendar.TUESDAY -> 1
-                Calendar.WEDNESDAY -> 2
-                Calendar.THURSDAY -> 3
-                Calendar.FRIDAY -> 4
-                Calendar.SATURDAY -> 5
-                Calendar.SUNDAY -> 6
-                else -> 0
-            }
-            sums[index] += trip.payout
-        }
-        sums
-    }
-
-    val daysLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val maxVal = (weekdaySums.maxOrNull() ?: 100.0).let { if (it < 100.0) 100.0 else it }.toFloat()
-
-    val primaryBarColor = MaterialTheme.colorScheme.primary
-    val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val canvasW = size.width
-                val canvasH = size.height
-
-                // Grid divisions
-                val gridStep = canvasH / 4f
-                for (i in 0..4) {
-                    val y = i * gridStep
-                    drawLine(
-                        color = gridLineColor,
-                        start = Offset(0f, y),
-                        end = Offset(canvasW, y),
-                        strokeWidth = 1f
-                    )
-                }
-
-                // Drawing Columns
-                val barSpacingRatio = 0.4f
-                val colWidth = canvasW / 7f
-                val barWidth = colWidth * (1f - barSpacingRatio)
-
-                for (idx in weekdaySums.indices) {
-                    val amount = weekdaySums[idx].toFloat()
-                    val barHeight = (amount / maxVal) * (canvasH - 20.dp.toPx())
-                    val barX = idx * colWidth + (colWidth * barSpacingRatio / 2f)
-                    val barY = canvasH - barHeight
-
-                    drawRoundRect(
-                        color = primaryBarColor,
-                        topLeft = Offset(barX, barY),
-                        size = Size(barWidth, barHeight),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Weekday label row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            daysLabels.forEachIndexed { i, label ->
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = label,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = String.format("$%.0f", weekdaySums[i]),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        color = if (weekdaySums[i] > 0) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ---------------------- WORK TRIP ITEM ROW CARD ----------------------
-@Composable
-fun TripHistoryItemRow(
-    trip: Trip,
-    onDeleteClick: () -> Unit
-) {
-    val formatter = remember { SimpleDateFormat("EEE, hh:mm a", Locale.getDefault()) }
-    val formattedDate = remember(trip.timestamp) { formatter.format(Date(trip.timestamp)) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (trip.type == "Ride") Color(0xFFEFF6FF) else Color(0xFFFFF7ED)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (trip.type == "Ride") Icons.Default.DirectionsCar else Icons.Default.LocalShipping,
-                            contentDescription = "Ride",
-                            tint = if (trip.type == "Ride") Color(0xFF3B82F6) else Color(0xFFF97316),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = trip.partnerName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "$formattedDate • ${trip.distanceMiles} mi in ${trip.durationMinutes}m",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-
-                Text(
-                    text = String.format("+$%.2f", trip.payout),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFF10B981)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Pickup dropoff points descriptions
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = trip.pickupAddress,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFEF4444)))
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = trip.dropoffAddress,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun ProfileFieldRow(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFF8FAFC))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = Color(0xFF64748B),
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8)
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1E293B)
-            )
-        }
-        Icon(
-            imageVector = Icons.Default.Lock,
-            contentDescription = "Locked Field",
-            tint = Color(0xFFCBD5E1),
-            modifier = Modifier.size(14.dp)
-        )
-    }
-}
-
-
-// ========================================== TAB 5: MENU AND COCKPIT ==========================================
-@Composable
-fun MenuTabContent(
-    profile: DriverProfile,
-    viewModel: DriverViewModel,
-    hasLocationPermission: Boolean,
-    hasCameraPermission: Boolean,
-    hasNotificationPermission: Boolean,
-    hasBgLocationPermission: Boolean,
-    onRequestPermissions: () -> Unit,
-    onRequestBgLocation: () -> Unit
-) {
-    var nameField by remember { mutableStateOf(profile.name) }
-    var vehicleField by remember { mutableStateOf(profile.vehicleModel) }
-    var licenseField by remember { mutableStateOf(profile.licensePlate) }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // App Identity Brand Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .height(260.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.app_logo_foreground_1781815070116),
-                        contentDescription = "App Logo",
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "Shri Krishna",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E3A8A)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Drawing map route canvas simulation
+                        SimulationMapCanvas(
+                            isOnline = isOnline,
+                            activeJobState = activeJobState,
+                            modifier = Modifier.fillMaxSize()
                         )
-                        Text(
-                            text = "DRIVER COMPANION APP",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF64748B),
-                            letterSpacing = 1.sp
-                        )
-                    }
-                }
-            }
-        }
 
-        // Driver Level Badge HUD
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = profile.name.take(2).uppercase(),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = profile.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Floating map info (Speed, Fuel, Tolls estimation)
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                                .background(ObsidianBlack.copy(alpha = 0.9f), RoundedCornerShape(8.dp))
+                                .padding(8.dp)
+                        ) {
+                            Text("Est. Tolls: ₹250.00", color = LightText, fontSize = 11.sp)
+                            Text("Est. Fuel: ₹380.00", color = LightText, fontSize = 11.sp)
+                            Text("Route: AI Optimized", color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        // Floating SOS panic emergency button
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(if (isSOSActive) Color.White else Color(0xFFEF4444))
+                                .clickable { viewModel.triggerSOS() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "SOS Button",
+                                tint = if (isSOSActive) Color(0xFFEF4444) else Color.White
+                            )
+                        }
+
+                        // Selfie verification alert
+                        if (!faceVerified) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFFFEF3C7))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .fillMaxSize()
+                                    .background(ObsidianBlack.copy(alpha = 0.95f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("GOLD BADGE PARTNER", color = Color(0xFFD97706), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("★ 4.95 Rating", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Verified Driver Profile & Credentials Section (Locked)
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth().testTag("profile_view_card"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    // Security Locked Badge Notice
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFFEF2F2))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Lock Security",
-                            tint = Color(0xFFDC2626),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "PROFILE SECURELY LOCKED",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF991B1B)
-                            )
-                            Text(
-                                text = "For safety compliance, driver profile updates are locked. (प्रोफ़ाइल सुरक्षित रूप से लॉक है)",
-                                fontSize = 10.sp,
-                                color = Color(0xFF7F1D1D)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-                    Text(
-                        text = "Verified Driver Profile",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 1. Driver Name Row
-                    ProfileFieldRow(
-                        label = "Driver Name (नाम)",
-                        value = profile.name,
-                        icon = Icons.Default.Person
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 2. Vehicle Spec Row
-                    ProfileFieldRow(
-                        label = "Vehicle Details (गाड़ी/वाहन विवरण)",
-                        value = profile.vehicleModel,
-                        icon = Icons.Default.DirectionsCar
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 3. License Plate Number Row
-                    ProfileFieldRow(
-                        label = "License Plate Number (वाहन नंबर)",
-                        value = profile.licensePlate,
-                        icon = Icons.Default.CropFree
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 4. Contact Mobile Row (Specified as "number change nahi kar sakta")
-                    ProfileFieldRow(
-                        label = "Verified Mobile Number (मोबाइल नंबर)",
-                        value = "+91 98765-43012",
-                        icon = Icons.Default.Phone
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 5. Driver License ID Row (Specified as "licence ID change nahi kar sakta")
-                    ProfileFieldRow(
-                        label = "Driver License ID (ड्राइवर लाइसेंस नंबर)",
-                        value = "DL-" + profile.licensePlate.replace("-", "").uppercase() + "98",
-                        icon = Icons.Default.VerifiedUser
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Support Help notice
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF1F5F9))
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Support Agent",
-                            tint = Color(0xFF475569),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "To edit any profile parameters, please submit verified credentials to support.",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
-                            color = Color(0xFF475569)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    OutlinedButton(
-                        onClick = { viewModel.logout() },
-                        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("logout_button"),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB91C1C))
-                    ) {
-                        Icon(imageVector = Icons.Default.Logout, contentDescription = "Log Out", tint = Color(0xFFB91C1C))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("LOG OUT OF PROFILE", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        // Sound and Alert Settings
-        item {
-            val appSoundsEnabled by viewModel.appSoundsEnabled.collectAsStateWithLifecycle()
-            Card(
-                modifier = Modifier.fillMaxWidth().testTag("sound_settings_card"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = "Notification Icons",
-                            tint = Color(0xFF1E3A8A)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Notification Sound Alerts",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Enable or disable audio sound alerts when a new duty request / trip offer arrives dynamically.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFEEF2F6))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "Trip Offer Sound Warning",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = Color(0xFF1E293B)
-                            )
-                            Text(
-                                text = "Plays alarm ring when trip arrives",
-                                fontSize = 11.sp,
-                                color = Color(0xFF64748B)
-                            )
-                        }
-                        Switch(
-                            checked = appSoundsEnabled,
-                            onCheckedChange = { viewModel.toggleAppSounds() },
-                            modifier = Modifier.testTag("sound_toggle_switch")
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { viewModel.playDispatchSound() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .testTag("test_sound_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
-                    ) {
-                        Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Volume Up", tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("TEST NOTIFICATION CHIME", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
-
-        // Driver App Security & Permissions Center Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth().testTag("permissions_settings_card"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VerifiedUser,
-                            contentDescription = "Shield Icon",
-                            tint = Color(0xFF1E3A8A)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Driver App Security & Permissions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Manage system hardware access permissions to allow real-time driver tracking, delivery proofs, and urgent audible alarms.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Location Permission Status Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Location status icon",
-                                tint = if (hasLocationPermission) Color(0xFF10B981) else Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "GPS Location Tracking",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                        Text(
-                            text = if (hasLocationPermission) "Granted" else "Required",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (hasLocationPermission) Color(0xFF10B981) else Color(0xFFEF4444)
-                        )
-                    }
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-
-                    // Camera Permission Status Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Camera status icon",
-                                tint = if (hasCameraPermission) Color(0xFF10B981) else Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Camera Profile & Uploads",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                        Text(
-                            text = if (hasCameraPermission) "Granted" else "Required",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (hasCameraPermission) Color(0xFF10B981) else Color(0xFFEF4444)
-                        )
-                    }
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-
-                    // Post Notifications Permission Status Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = "Notification status icon",
-                                tint = if (hasNotificationPermission) Color(0xFF10B981) else Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Persistent Push Alerts & Alarms",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                        Text(
-                            text = if (hasNotificationPermission) "Granted" else "Required",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (hasNotificationPermission) Color(0xFF10B981) else Color(0xFFEF4444)
-                        )
-                    }
-
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-
-                    // Background Location Permission Status Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Map,
-                                contentDescription = "Background location status icon",
-                                tint = if (hasBgLocationPermission) Color(0xFF10B981) else Color(0xFFF59E0B),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Background Location Run Mode",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF334155)
-                            )
-                        }
-                        Text(
-                            text = if (hasBgLocationPermission) "Granted" else "Optional/Not Set",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (hasBgLocationPermission) Color(0xFF10B981) else Color(0xFFF59E0B)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { onRequestPermissions() },
-                            modifier = Modifier
-                                .weight(1.5f)
-                                .height(44.dp)
-                                .testTag("request_main_permissions_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
-                        ) {
-                            Text("GRANT MAIN ACCESS", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = { onRequestBgLocation() },
-                            modifier = Modifier
-                                .weight(1.5f)
-                                .height(44.dp)
-                                .testTag("request_bg_permission_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569))
-                        ) {
-                            Text("BACKGROUND ACCESS", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Developer Dispatch Center Console (Sandbox Simulator Cockpit)
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.SportsMotorsports,
-                            contentDescription = "Sim logo",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Sandbox Simulator Cockpit",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Manually trigger notifications, generate instant mock dispatches on the active Noida route mapping, or wipe historic databases for testing.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Buttons of Sandbox Simulator
-                    Button(
-                        onClick = { viewModel.spawnRandomOffer() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("sim_trigger_offer_btn"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Icon(Icons.Default.Navigation, "Incoming Icon", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("FORCE TRIGGER DISPATCH INSTANTLY", fontWeight = FontWeight.Black, fontSize = 12.sp)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = {
-                                val randomTrip = Trip(
-                                    type = listOf("Ride", "Delivery").random(),
-                                    pickupAddress = "Simulated Noida Sector 15",
-                                    dropoffAddress = "Simulated Noida Greater Bypass",
-                                    payout = (20..90).random().toDouble() + 0.50,
-                                    distanceMiles = (3..15).random().toDouble(),
-                                    durationMinutes = (10..40).random(),
-                                    partnerName = "Manual Sandbox Inject #${(1000..9999).random()}",
-                                    rating = 5.0f
-                                )
-                                viewModel.insertMockTrip(randomTrip)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurfaceVariant),
-                            modifier = Modifier.weight(1f).height(44.dp).testTag("sim_credit_cash_btn")
-                        ) {
-                            Text("CREDIT +$50 CASH", fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        Button(
-                            onClick = { viewModel.clearHistory() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.weight(1f).height(44.dp).testTag("sim_erase_history_btn")
-                        ) {
-                            Text("WIPE DATABASE", fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Support Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Emergency Contact Support", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Immediate Hotline: 1800-DRV-SAFE (24/7 Support)", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-    }
-}
-
-// ========================================== TAB 2: DISCOVER SURGES ==========================================
-@Composable
-fun DiscoverTabContent(viewModel: DriverViewModel) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Text(
-                text = "Discover Corridors",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black
-            )
-            Text(
-                text = "Explore high surge coordinates in Delhi-NCR",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Live Radar Highlights
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "⚡ NCR Active Surges",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    val surges = listOf(
-                        Triple("Noida Sector 62", "1.5x Multiplier", "2.1 mi near you"),
-                        Triple("Saket Metro Precinct", "1.8x Multiplier", "6.5 mi near you"),
-                        Triple("Connaught Place Circle", "2.0x Multiplier", "4.0 mi near you"),
-                        Triple("Indira Gandhi Intl Airport (T3)", "2.2x Multiplier", "12.8 mi near you"),
-                        Triple("Ghaziabad Crossing", "1.3x Multiplier", "8.2 mi near you")
-                    )
-                    
-                    surges.forEach { (loc, surge, dist) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(loc, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text(dist, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFFFEDD5))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = surge,
-                                    color = Color(0xFFC2410C),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                    }
-                }
-            }
-        }
-
-        // Peak Hours Heatmap Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "📅 Peak Hour Heatmap",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Expect high dispatch frequency during these hours:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    val peaks = listOf(
-                        "08:00 AM - 11:00 AM (Morning Rush)" to 1.0f,
-                        "11:00 AM - 04:00 PM (Afternoon Lunch)" to 0.45f,
-                        "04:00 PM - 09:00 PM (Evening Peak)" to 0.95f,
-                        "09:00 PM - 12:00 AM (Night Shift)" to 0.7f
-                    )
-                    
-                    peaks.forEach { (time, ratio) ->
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(time, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                                Text(String.format("%.0f%% Load", ratio * 100), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                progress = { ratio },
-                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                                color = if (ratio > 0.8f) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ========================================== TAB 4: INBOX BRIEFINGS ==========================================
-@Composable
-fun InboxTabContent(viewModel: DriverViewModel) {
-    var supportQuery by remember { mutableStateOf("") }
-    var chatMessages by remember { mutableStateOf(listOf(
-        "Support Agent" to "Hello Alex! How can I assist you with your driver companion app today? Try asking about 'Zero Commission' or 'Surge'!"
-    )) }
-    
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Inbox Header
-        item {
-            Column {
-                Text(
-                    text = "Inbox Messages",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    text = "Stay updated on recent notices and support briefs",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Unread Badge Alert banner
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2563EB)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("20", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Active Unread Briefings", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1E40AF))
-                        Text("You have unread system alerts in your regional driver loop.", fontSize = 12.sp, color = Color(0xFF1E40AF).copy(alpha = 0.8f))
-                    }
-                }
-            }
-        }
-
-        // Support Assistant Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "💬 Live Driver Support AI",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Support chat log box
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(8.dp)
-                    ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(chatMessages) { (sender, text) ->
-                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(
-                                        text = sender,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (sender == "You") MaterialTheme.colorScheme.primary else Color(0xFF10B981)
-                                    )
-                                    Text(text = text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = supportQuery,
-                            onValueChange = { supportQuery = it },
-                            placeholder = { Text("What is my commission fee?", fontSize = 12.sp) },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                if (supportQuery.isNotBlank()) {
-                                    val userMsg = supportQuery
-                                    val reply = when {
-                                        userMsg.contains("commission", ignoreCase = true) || userMsg.contains("pass", ignoreCase = true) -> 
-                                            "Our zero commission promotion is active today! Complete any trip and you'll get a 24-hour dispatch pass automatically."
-                                        userMsg.contains("surge", ignoreCase = true) || userMsg.contains("hot", ignoreCase = true) -> 
-                                            "Delhi Connaught Place and Noida Sector 62 are currently reflecting the highest surge multipliers. Activate online mode!"
-                                        else -> "I have received your request regarding '$userMsg'. Support has flagged this query for instant dispatcher review!"
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+                                    Icon(Icons.Default.Face, contentDescription = "Face Security", tint = MetallicGold, modifier = Modifier.size(36.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("Unoxia Quality Audit Check", color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Take a secure face check login verification to activate routing duties.", color = GrayMuted, fontSize = 11.sp, textAlign = TextAlign.Center)
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                    Button(
+                                        onClick = { showSelfiePopup = true },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MetallicGold)
+                                    ) {
+                                        Text("Verify Selfie", color = ObsidianBlack, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
-                                    chatMessages = chatMessages + ("You" to userMsg) + ("Support Agent" to reply)
-                                    supportQuery = ""
                                 }
-                            },
-                            modifier = Modifier.height(56.dp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
+            // Active Dispatch state actions
+            item {
+                ActiveWorkflowPanel(
+                    isOnline = isOnline,
+                    activeJobState = activeJobState,
+                    viewModel = viewModel
+                )
+            }
+
+            // Quick AI Prediction insights
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(BorderGray),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Ask", fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Insights, contentDescription = "AI insights", tint = MetallicGold)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("AI Dynamic Oracle Guidance", color = LightText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            val peakText = if (isOnline) "High surge forecast in Downtown Business Hub (2.4x Multiplier in next 15 mins)." else "Go online to dispatch AI route estimations."
+                            Text(peakText, color = GrayMuted, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+    }
+
+    if (showSelfiePopup) {
+        AlertDialog(
+            onDismissRequest = { showSelfiePopup = false },
+            containerColor = ObsidianBlack,
+            title = { Text("Selfie Liveness Verification", color = LightText) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .size(150.dp)
+                            .clip(CircleShape)
+                            .background(BorderGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Face, contentDescription = "Place face here", tint = MetallicGold, modifier = Modifier.size(64.dp))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Face fraud risk index lookup: Safe. Positioning guidelines matched.",
+                        fontSize = 12.sp,
+                        color = GrayMuted,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.triggerFaceCheckVerification {
+                            showSelfiePopup = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MetallicGold)
+                ) {
+                    Text("Capture & Verify", color = ObsidianBlack)
+                }
+            }
+        )
+    }
+}
+
+// ---------------------- WORKFLOW PANEL (JOB DISPATCH STATEMACHINE) ----------------------
+@Composable
+fun ActiveWorkflowPanel(
+    isOnline: Boolean,
+    activeJobState: ActiveJobState,
+    viewModel: DriverViewModel
+) {
+    if (!isOnline) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
+        ) {
+            Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.PowerOff, contentDescription = "Go Online Reminder", tint = GrayMuted, modifier = Modifier.size(36.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("YOUR CONSOLE IS OFFLINE", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Toggle Online status in top banner to connect to our dispatch networks.", color = GrayMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
+            }
+        }
+    } else {
+        when (activeJobState) {
+            is ActiveJobState.Idle -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
+                ) {
+                    Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MetallicGold, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("AWAITING INCOMING TRIPS...", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("AI routing is actively polling surrounding passenger demand matrix.", color = GrayMuted, fontSize = 11.sp, textAlign = TextAlign.Center)
+                        
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Button(
+                            onClick = { viewModel.spawnRandomOffer() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MetallicGold)
+                        ) {
+                            Text("Force Demo Offer Dispatch", color = ObsidianBlack, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+            is ActiveJobState.Requested -> {
+                val job = activeJobState.job
+                val countdown = activeJobState.timeLeftSeconds
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = ObsidianBlack), // Highlight offer
+                    border = androidx.compose.foundation.BorderStroke(2.dp, MetallicGold),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.NotificationImportant, contentDescription = "Alert", tint = MetallicGold)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("OUTSTANDING RIDE DISPATCH!", color = MetallicGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                            // Countdown timer
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(BorderGray)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("${countdown}s left", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(14.dp))
+                        
+                        Text("PICKUP FROM:", color = GrayMuted, fontSize = 11.sp)
+                        Text(job.pickupAddress, color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text("DESTINATION:", color = GrayMuted, fontSize = 11.sp)
+                        Text(job.dropoffAddress, color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("METRIC DISTANCE", color = GrayMuted, fontSize = 10.sp)
+                                Text("${"%.2f".format(job.distanceMiles)} km", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                            Column {
+                                Text("ESTIMATED PAYOUT", color = GrayMuted, fontSize = 10.sp)
+                                Text("₹${"%.2f".format(job.payout)}", color = MetallicGold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { viewModel.declineOffer() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Reject Trip")
+                            }
+                            Button(
+                                onClick = { viewModel.acceptOffer(job) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
+                                modifier = Modifier.weight(1.5f)
+                            ) {
+                                Text("Accept Dispatch", color = ObsidianBlack, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+            else -> {
+                // Navigating active ride details
+                val uiDetails = when (activeJobState) {
+                    is ActiveJobState.Accepted -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "DISPATCH COMPLETED: TRAVEL TO CLIENT",
+                        stepInstruction = "Head towards: " + activeJobState.job.pickupAddress,
+                        buttonLabel = "Simulate GPS: Drive to Pickup",
+                        onActionClick = { viewModel.startDriveToPickup(activeJobState.job) }
+                    )
+                    is ActiveJobState.EnRouteToPickup -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "EN-ROUTE TO PICKUP",
+                        stepInstruction = "Driving... ETA: 2 mins",
+                        buttonLabel = "Arrive at Passenger Pickup",
+                        onActionClick = { viewModel.triggerPickupArrived(activeJobState.job) }
+                    )
+                    is ActiveJobState.ArrivedAtPickup -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "ARRIVED: WAITING FOR CLIENT",
+                        stepInstruction = "Passenger: " + activeJobState.job.partnerName + " notified.",
+                        buttonLabel = "Start Ride (In-Trip)",
+                        onActionClick = { viewModel.startTripAndEnRoute(activeJobState.job) }
+                    )
+                    is ActiveJobState.EnRouteToDropoff -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "IN-TRIP TO DROP-OFF",
+                        stepInstruction = "Heading to: " + activeJobState.job.dropoffAddress,
+                        buttonLabel = "Arrive at Destination",
+                        onActionClick = { viewModel.completeTrip(activeJobState.job) }
+                    )
+                    is ActiveJobState.ArrivedAtDropoff -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "ARRIVED AT DESTINATION",
+                        stepInstruction = "Reached " + activeJobState.job.dropoffAddress + ". Confirm details.",
+                        buttonLabel = "Complete Ride & Collect Payout",
+                        onActionClick = { viewModel.completeTrip(activeJobState.job) }
+                    )
+                    is ActiveJobState.CompletedGreeting -> NavDetailsUi(
+                        job = activeJobState.job,
+                        headerTitle = "TRIP COMPLETED SUCCESSFULLY",
+                        stepInstruction = "Fare settled securely. ₹" + (activeJobState.job.payout) + " successfully credited.",
+                        buttonLabel = "Acknowledge and Clear Console",
+                        onActionClick = { viewModel.dismissGreeting() }
+                    )
+                    else -> null
+                }
+
+                if (uiDetails != null && uiDetails.job != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(uiDetails.headerTitle, color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(uiDetails.stepInstruction, color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column {
+                                    Text("RIDER NAME (नाम)", color = GrayMuted, fontSize = 10.sp)
+                                    Text(uiDetails.job.partnerName, color = LightText, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                }
+                                Column {
+                                    Text("FARE PAYOUT", color = GrayMuted, fontSize = 10.sp)
+                                    Text("₹${uiDetails.job.payout}", color = MetallicGold, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(14.dp))
+                            
+                            Button(
+                                onClick = uiDetails.onActionClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(uiDetails.buttonLabel, color = ObsidianBlack, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Offer Cancellation Reason Flow during pickup
+                            if (activeJobState !is ActiveJobState.CompletedGreeting && activeJobState !is ActiveJobState.EnRouteToDropoff && activeJobState !is ActiveJobState.ArrivedAtDropoff) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TextButton(
+                                    onClick = { viewModel.dismissGreeting() }, // Cancel helper
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Cancel Ride (Rider No-Show)", color = Color(0xFFEF4444), fontSize = 12.sp)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
 
-        // Alerts List Section Headers
+// ---------------------- 1. WELFARE SYSTEMS (PASS, PF, PENSION, REFERRALS, FLEET) ----------------------
+@Composable
+fun WelfareTabContent(viewModel: DriverViewModel) {
+    val pfEmployee by viewModel.pfBalanceEmployee.collectAsStateWithLifecycle()
+    val pfEmployer by viewModel.pfBalanceEmployer.collectAsStateWithLifecycle()
+    val pensionCont by viewModel.pensionContribution.collectAsStateWithLifecycle()
+    val pensionProj by viewModel.pensionProjected.collectAsStateWithLifecycle()
+    val passDaysLeft by viewModel.unoxiaPassRemainingDays.collectAsStateWithLifecycle()
+    val refCode by viewModel.referralCode.collectAsStateWithLifecycle()
+    val refEarnings by viewModel.referralEarnings.collectAsStateWithLifecycle()
+    val refCount by viewModel.referralCount.collectAsStateWithLifecycle()
+    val driverXP by viewModel.driverXP.collectAsStateWithLifecycle()
+    val driverRank by viewModel.driverRank.collectAsStateWithLifecycle()
+    val fleetOwnerName by viewModel.fleetOwnerName.collectAsStateWithLifecycle()
+    val fleetCut by viewModel.fleetOwnerCutPercent.collectAsStateWithLifecycle()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         item {
-            Text("PRIORITY BRIEFINGS", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            Text(
+                text = "UNOXIA GROUP DRIVER WELFARE CORNER",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MetallicGold,
+                letterSpacing = 1.5.sp
+            )
+            Text(
+                text = "Welfare, Pass & Social Security Accounts",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // List of bulletins
-        val bulletins = listOf(
-            Triple("⛈️ Monsoon Rainfall Alert", "Noida region is registering high demand spikes due to light precipitation. Multipliers elevated to 1.8x near corridors.", "20 mins ago"),
-            Triple("🎫 Zero-Commission Promo Enabled", "Your account has been enrolled in the Shri Krishna Zero-Commission drive. Complete your next active trip to unlock.", "1 hour ago"),
-            Triple("⚠️ Construction Road Closure", "Major traffic diversion implemented along Sector 62 grid bypass. Expect 15-minute delays; routing auto-calculates bypass.", "3 hours ago"),
-            Triple("🏆 Gold Badge Partner unlocked", "Congratulations Alex! You have completed consecutive peak dispatches this week, increasing your terminal priority status.", "1 day ago"),
-            Triple("💳 Wallet Settlement Complete", "Your accumulated balance was successfully cleared to default bank account. Check your local bank logs.", "2 days ago")
-        )
-
-        items(bulletins) { (title, text, time) ->
+        // UNOXIA Zero-Commission Pass Dashboard
+        item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(time, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                        Column {
+                            Text("ACTIVE PASS STATUS", color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Unoxia Elite Zero-Commission", color = LightText, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BorderGray)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text("$passDaysLeft Days Left", color = MetallicGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Unoxia Zero-Commisssion pass guarantees 100% of the rider's trip payment goes directly into your earnings wallet (No hidden deductions).",
+                        color = GrayMuted,
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = { viewModel.purchaseOrRenewPass() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Renew Group Pass (₹499/Month)", color = ObsidianBlack, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // PF & Pension Combined Account Ledger
+        item {
+            Text(
+                text = "SOCIAL SECURITY LEDGERS (पीएफ व पेंशन)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Provident fund summary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("PROVIDENT FUND STATEMENT (PF Balance)", color = GrayMuted, fontSize = 11.sp)
+                            Text("₹${"%,.2f".format(pfEmployee + pfEmployer)}", color = LightText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Icon(Icons.Default.AccountBalance, contentDescription = "Bank", tint = MetallicGold)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Divider(color = BorderGray)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("Your Contribution", color = GrayMuted, fontSize = 10.sp)
+                            Text("₹${"%,.2f".format(pfEmployee)}", color = LightText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Employer Contribution", color = GrayMuted, fontSize = 10.sp)
+                            Text("₹${"%,.2f".format(pfEmployer)}", color = LightText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Divider(color = BorderGray)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Pension Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("PENSION ACCRUALS", color = GrayMuted, fontSize = 11.sp)
+                            Text("₹${"%,.2f".format(pensionCont)}", color = LightText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Projected Retirement Lump", color = GrayMuted, fontSize = 10.sp)
+                            Text("₹${"%,.2f".format(pensionProj)}", color = MetallicGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Driver Rank Milestones progress
+        item {
+            Text(
+                text = "DRIVER LEVELLING XP TRACKER",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Rank Level: $driverRank Partner", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("$driverXP / 1000 XP", color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    LinearProgressIndicator(
+                        progress = driverXP / 1000f,
+                        color = MetallicGold,
+                        trackColor = BorderGray,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Next Badge: Diamond level benefits (Reduced pass costs, VIP call queue prioritization & dedicated WhatsApp support channels).",
+                        fontSize = 11.sp,
+                        color = GrayMuted
+                    )
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Fleet Module Association
+        item {
+            Text(
+                text = "FLEET PARTNER ASSOCIATION",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Linked Entity: $fleetOwnerName", color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Owner Commission Cap:", color = GrayMuted, fontSize = 11.sp)
+                        Text("$fleetCut% Payout Ded.", color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        text = "Settlements are processed weekly directly with your managing operator account.",
+                        color = GrayMuted,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Referral invite code generator
+        item {
+            Text(
+                text = "REFERRAL LINK (आमंत्रण कोड)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("YOUR GOLD REFERRAL CODE", color = GrayMuted, fontSize = 10.sp)
+                            Text(refCode, color = MetallicGold, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(BorderGray)
+                                .clickable { /* Copy */ }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text("Copy Code", color = LightText, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Divider(color = BorderGray)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("Successful Invites", color = GrayMuted, fontSize = 10.sp)
+                            Text("$refCount Drivers", color = LightText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Referral Revenue Saved", color = GrayMuted, fontSize = 10.sp)
+                            Text("₹${"%,.2f".format(refEarnings)}", color = MetallicGold, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(30.dp)) }
+    }
+}
+
+// ---------------------- 2. FINANCE TAB CONTENT (EARNINGS METRICS & WALLET) ----------------------
+@Composable
+fun FinanceTabContent(completedTrips: List<Trip>, viewModel: DriverViewModel) {
+    val walletBalance by viewModel.walletBalance.collectAsStateWithLifecycle()
+
+    val df = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        item {
+            Text(
+                text = "UNOXIA GROUP SETTLEMENTS LEDGER",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MetallicGold,
+                letterSpacing = 1.5.sp
+            )
+            Text(
+                text = "Earnings Analytics & Secured Payouts",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Wallet Balance Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, MetallicGold)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("AVAILABLE BALANCE SECURED", color = GoldMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("₹${"%,.2f".format(walletBalance)}", color = LightText, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { 
+                                viewModel.requestInstantPayout(1000.0) 
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MetallicGold,
+                                contentColor = ObsidianBlack,
+                                disabledContainerColor = Color.Gray,
+                                disabledContentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Withdraw ₹1K", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { viewModel.addMockFunds(5000.0) },
+                            colors = ButtonDefaults.buttonColors(containerColor = BorderGray),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Add Funds ₹5K", color = LightText, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Dynamic Graph visual chart
+        item {
+            Text(
+                text = "WEEKLY DISPATCH PAYOUT GRAPH",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    EarningsWeeklyBarChart(completedTrips)
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Taxes & GST summary
+        item {
+            Text(
+                text = "GST TAXES SUMMARY",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Gross Fare Earnings:", color = GrayMuted, fontSize = 12.sp)
+                        Text("₹${"%,.2f".format(completedTrips.sumOf { it.payout } * 1.05)}", color = LightText, fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Net Settlement Payout:", color = GrayMuted, fontSize = 12.sp)
+                        Text("₹${"%,.2f".format(completedTrips.sumOf { it.payout })}", color = LightText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("CGST Deducted (2.5%):", color = GrayMuted, fontSize = 12.sp)
+                        Text("₹${"%,.2f".format(completedTrips.sumOf { it.payout } * 0.025)}", color = Color(0xFFEF4444), fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("SGST Deducted (2.5%):", color = GrayMuted, fontSize = 12.sp)
+                        Text("₹${"%,.2f".format(completedTrips.sumOf { it.payout } * 0.025)}", color = Color(0xFFEF4444), fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // Local historical settlements logs list
+        item {
+            Text(
+                text = "COMPLETED DISPATCH HISTORY",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = GoldMuted,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        if (completedTrips.isEmpty()) {
+            item {
+                Card(
+                     modifier = Modifier.fillMaxWidth(),
+                     shape = RoundedCornerShape(12.dp),
+                     colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                     border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                ) {
+                    Box(modifier = Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("No completed jobs on record.", color = GrayMuted, fontSize = 13.sp)
+                    }
+                }
+            }
+        } else {
+            items(completedTrips.sortedByDescending { it.timestamp }) { trip ->
+                TripHistoryItemRow(trip = trip, df = df)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
+}
+
+// Simple bar chart visualizer
+@Composable
+fun EarningsWeeklyBarChart(completedTrips: List<Trip>) {
+    val sampleDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val dayTotals = DoubleArray(7)
+    
+    // Distribute actual payouts across days (mock/modulo)
+    completedTrips.forEach {
+        val i = (it.timestamp / (24 * 3600 * 1000) % 7).toInt()
+        dayTotals[i] += it.payout
+    }
+
+    val maxPayout = (dayTotals.maxOrNull() ?: 1.0).coerceAtLeast(100.0)
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .padding(top = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            dayTotals.forEachIndexed { index, amt ->
+                val barHeightFrac = (amt / maxPayout).toFloat().coerceIn(0.05f, 1.0f)
+                
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.height(140.dp)
+                ) {
+                    Text("₹${amt.toInt()}", color = LightText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(22.dp)
+                            .fillMaxHeight(barHeightFrac)
+                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 0.dp, bottomEnd = 0.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(MetallicGold, BrightGold)
+                                )
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(sampleDays[index], color = GrayMuted, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TripHistoryItemRow(trip: Trip, df: SimpleDateFormat) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (trip.type == "Ride") Color(0xFFEEF2F6) else Color(0xFFE8F5E9)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (trip.type == "Ride") Icons.Default.DirectionsCar else Icons.Default.Inventory2,
+                        contentDescription = trip.type,
+                        tint = if (trip.type == "Ride") MetallicGold else Color(0xFF10B981),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(trip.partnerName, color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(df.format(Date(trip.timestamp)), color = GrayMuted, fontSize = 11.sp)
+                }
+            }
+            Text("+₹${"%.2f".format(trip.payout)}", color = MetallicGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+    }
+}
+
+
+// ---------------------- 3. NEWS FEED & CIRCLE COMMUNITY (CHAT) ----------------------
+@Composable
+fun CircleTabContent(viewModel: DriverViewModel) {
+    var newsMethod by remember { mutableStateOf(0) } // 0: News Feed, 1: Live Chat, 2: Training
+
+    var chatMessage by remember { mutableStateOf("") }
+    val mockChatList = remember {
+        mutableStateListOf(
+            "Ramesh (Bengaluru): Huge demand spike near international airport. Safe driving brothers!",
+            "Sukhwinder (Delhi NCR): CNG pricing unchanged this week. Verified at petrol pumps.",
+            "Aniket (Mumbai): Complete your Aadhaar KYC update early to prevent terminal lockout.",
+            "Alexander (UNOXIA Group Admin): Welcome premium partners to the elite Black & Gold platform."
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(
+            text = "UNOXIA GROUP DRIVER ASSOCIATION CIRCLE",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MetallicGold,
+            letterSpacing = 1.5.sp
+        )
+        Text(
+            text = "Driver Community Center",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = LightText
+        )
+        
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Navigation Subtolls
+        TabRow(
+            selectedTabIndex = newsMethod,
+            containerColor = ObsidianBlack,
+            contentColor = MetallicGold,
+            modifier = Modifier
+                .fillModifierWidthOnly()
+                .height(44.dp)
+                .clip(RoundedCornerShape(10.dp)),
+            indicator = {}
+        ) {
+            Tab(
+                selected = newsMethod == 0,
+                onClick = { newsMethod = 0 },
+                text = { Text("News Feed", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            Tab(
+                selected = newsMethod == 1,
+                onClick = { newsMethod = 1 },
+                text = { Text("Circle Chat", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+            Tab(
+                selected = newsMethod == 2,
+                onClick = { newsMethod = 2 },
+                text = { Text("Road Training", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when (newsMethod) {
+            0 -> {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    item {
+                        NewsArticleRow(
+                            title = "UNOXIA Group Social pension scheme launched for veterans.",
+                            descr = "Verified drivers with 12 months consecutive Platinum rankings are automatically eligible for employer-matched retirement contributions.",
+                            age = "2 hours ago"
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        NewsArticleRow(
+                            title = "Monsoon Safety Protocols: Mandatory updates.",
+                            descr = "Ensure tyre treads are inspected and vehicle insurance documents are kept ready inside local file explorer vaults to satisfy emergency audit check controls.",
+                            age = "1 day ago"
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        NewsArticleRow(
+                            title = "Zero-Commission pass pricing reduced by 20%.",
+                            descr = "To support fuel inflationary shifts, our management has authorized temporary passes discount reductions.",
+                            age = "3 days ago"
+                        )
+                    }
+                }
+            }
+            1 -> {
+                // Live Chat simulation
+                Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(mockChatList) { msg ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                            ) {
+                                Text(msg, color = LightText, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = chatMessage,
+                            onValueChange = { chatMessage = it },
+                            placeholder = { Text("Broadcast message to surrounding drivers...", color = GrayMuted, fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MetallicGold,
+                                unfocusedBorderColor = BorderGray,
+                                focusedTextColor = LightText
+                            ),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        IconButton(
+                            onClick = {
+                                if (chatMessage.isNotBlank()) {
+                                    mockChatList.add("You: $chatMessage")
+                                    chatMessage = ""
+                                }
+                            },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MetallicGold)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = "Send", tint = ObsidianBlack)
+                        }
+                    }
+                }
+            }
+            2 -> {
+                // Road Training list
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text("Liveness & Customer Ethics Training", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Required for airport privilege dispatch levels.", color = GrayMuted, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text("Progress: Completed", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text("Navigation, Tolls & Cost Minimization", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Tips to minimize fuel expenses & bypass high-toll flyovers safely.", color = GrayMuted, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                LinearProgressIndicator(progress = 0.45f, color = MetallicGold, trackColor = BorderGray, modifier = Modifier.fillMaxWidth().height(4.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Progress: 45%", color = MetallicGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsArticleRow(title: String, descr: String, age: String) {
+    Card(
+        modifier = Modifier.fillModifierWidthOnly(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(title, color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(descr, color = GrayMuted, fontSize = 11.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(age, color = GoldMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+fun Modifier.fillModifierWidthOnly(): Modifier = this.fillMaxWidth()
+
+// ---------------------- 4. PORTAL HUB (READ ONLY PROFILE, VERIFIED DOCUMENTS, SUPPORT & SETTINGS) ----------------------
+@Composable
+fun PortalAuditorTabContent(viewModel: DriverViewModel) {
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+
+    var activeSubTab by remember { mutableStateOf(0) } // 0: Documents Vault, 1: Create Ticket, 2: System Settings
+    val docAadhaar by viewModel.aadhaarVerified.collectAsStateWithLifecycle()
+    val docPan by viewModel.panVerified.collectAsStateWithLifecycle()
+    val docDl by viewModel.dlVerified.collectAsStateWithLifecycle()
+    val docRc by viewModel.rcVerified.collectAsStateWithLifecycle()
+    val docInsurance by viewModel.insuranceVerified.collectAsStateWithLifecycle()
+
+    var ticketDesc by remember { mutableStateOf("") }
+    val supportTicketsList = remember {
+        mutableStateListOf(
+            "TKT-991A: Toll fee reimbursement under review.",
+            "TKT-884D: Welfare PF contribution gap verification resolved."
+        )
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        item {
+            Text(
+                text = "UNOXIA COMPLIANCE AUDITOR PORTAL",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MetallicGold,
+                letterSpacing = 1.5.sp
+            )
+            Text(
+                text = "Documents Audit & Help Center",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = LightText
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+
+        // Verified locked Profile Cards
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("VERIFIED PROFILE DETAILS (LOCKED)", color = GoldMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ProfileFieldRow("Driver Name", profile.name)
+                    ProfileFieldRow("Vehicle Specs", profile.vehicleModel)
+                    ProfileFieldRow("License Plate", profile.licensePlate)
+                    ProfileFieldRow("Average Rating", "${profile.rating} / 5.0 ⭐")
+                    ProfileFieldRow("Welfare Rank", "${profile.level}")
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(14.dp)) }
+
+        // Subtolls navigation
+        item {
+            TabRow(
+                selectedTabIndex = activeSubTab,
+                containerColor = ObsidianBlack,
+                contentColor = MetallicGold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                indicator = {}
+            ) {
+                Tab(
+                    selected = activeSubTab == 0,
+                    onClick = { activeSubTab = 0 },
+                    text = { Text("KYC Vault", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                )
+                Tab(
+                    selected = activeSubTab == 1,
+                    onClick = { activeSubTab = 1 },
+                    text = { Text("Support Tickets", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                )
+                Tab(
+                    selected = activeSubTab == 2,
+                    onClick = { activeSubTab = 2 },
+                    text = { Text("Settings", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        when (activeSubTab) {
+            0 -> {
+                item {
+                    Text("Secured Document Auditor check Vault", color = GrayMuted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
+                    AuditDocumentStatusRow("Aadhaar Identity Verification", docAadhaar)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    AuditDocumentStatusRow("Permanent Account Number (PAN)", docPan)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    AuditDocumentStatusRow("Commercial Driving License (DL)", docDl)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    AuditDocumentStatusRow("Registration Certificate (RC)", docRc)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    AuditDocumentStatusRow("Commercial Vehicle Insurance Policy", docInsurance)
+                }
+            }
+            1 -> {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text("Create Secure Support Ticket", color = LightText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = ticketDesc,
+                                onValueChange = { ticketDesc = it },
+                                placeholder = { Text("Describe ticket details (e.g. accident reports, toll dispute etc.)...", color = GrayMuted, fontSize = 12.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MetallicGold,
+                                    unfocusedBorderColor = BorderGray,
+                                    focusedTextColor = LightText
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    if (ticketDesc.isNotBlank()) {
+                                        supportTicketsList.add("TKT-${(100..999).random()}X: $ticketDesc (PENDING)")
+                                        ticketDesc = ""
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MetallicGold),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Submit Ticket", color = ObsidianBlack, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("ACTIVE COMPLAINT TICKETS HISTORY", color = GoldMuted, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(bottom = 6.dp))
+                    
+                    supportTicketsList.forEach { ticket ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                        ) {
+                            Text(ticket, color = LightText, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                        }
+                    }
+                }
+            }
+            2 -> {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text("Portal Settings", color = LightText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Strict Slate & Indigo Premium Theme", color = LightText, fontSize = 12.sp)
+                                Switch(checked = true, onCheckedChange = {}, colors = SwitchDefaults.colors(checkedThumbColor = MetallicGold))
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Language: English (Default)", color = LightText, fontSize = 12.sp)
+                                Text("Modify", color = MetallicGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Online Sync Queue status", color = LightText, fontSize = 12.sp)
+                                Text("0 Action pending", color = Color(0xFF10B981), fontSize = 12.sp)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider(color = BorderGray)
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Button(
+                                onClick = { viewModel.logout() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Disconnect & Log Out", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(28.dp)) }
+    }
+}
+
+@Composable
+fun ProfileFieldRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = GrayMuted, fontSize = 12.sp)
+        Text(value, color = LightText, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+    }
+}
+
+@Composable
+fun AuditDocumentStatusRow(docName: String, isVerified: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = ObsidianBlack),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (isVerified) Icons.Default.Verified else Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = if (isVerified) BrightGold else Color(0xFFEF4444),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(docName, color = LightText, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (isVerified) Color(0xFFDCFCE7) else Color(0xFFFEE2E2))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = if (isVerified) "Verified Locked" else "Pending Audit",
+                    color = if (isVerified) Color(0xFF15803D) else Color(0xFFB91C1C),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+
+// ---------------------- 2D MAP VECTOR RENDER SIMULATOR ----------------------
+@Composable
+fun SimulationMapCanvas(
+    isOnline: Boolean,
+    activeJobState: ActiveJobState,
+    modifier: Modifier = Modifier
+) {
+    // We animate a dynamic pulsating user tracking coordinate dot around map intersections representation
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseSize by infiniteTransition.animateFloat(
+        initialValue = 6f,
+        targetValue = 18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Canvas(modifier = modifier.background(DarkSlate)) {
+        val w = size.width
+        val h = size.height
+
+        // Draw grid intersections block representing city navigation streets
+        val streetPaint = ObsidianBlack
+        val routePaint = MetallicGold // Golden Route Path trace
+
+        // Streets lines
+        for (i in 1..8) {
+            val gridX = w * (i / 9f)
+            drawLine(color = streetPaint, start = Offset(gridX, 0f), end = Offset(gridX, h), strokeWidth = 3f)
+        }
+        for (j in 1..6) {
+            val gridY = h * (j / 7f)
+            drawLine(color = streetPaint, start = Offset(0f, gridY), end = Offset(w, gridY), strokeWidth = 3f)
+        }
+
+        if (isOnline) {
+            // Draw optimal routing path trace if a job is active
+            val activeJob = when (activeJobState) {
+                is ActiveJobState.Requested -> activeJobState.job
+                is ActiveJobState.Accepted -> activeJobState.job
+                is ActiveJobState.EnRouteToPickup -> activeJobState.job
+                is ActiveJobState.ArrivedAtPickup -> activeJobState.job
+                is ActiveJobState.EnRouteToDropoff -> activeJobState.job
+                is ActiveJobState.ArrivedAtDropoff -> activeJobState.job
+                is ActiveJobState.CompletedGreeting -> activeJobState.job
+                else -> null
+            }
+
+            if (activeJob != null) {
+                // Determine source & destination coordinates scale
+                val startX = w * 0.25f
+                val startY = h * 0.35f
+                val endX = w * 0.75f
+                val endY = h * 0.65f
+
+                // Routing path line drawing
+                drawLine(
+                    color = routePaint,
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 6f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
+
+                // Pickup location ring pin
+                drawCircle(color = Color(0xFF10B981), center = Offset(startX, startY), radius = 8f)
+                // Destination location ring pin
+                drawCircle(color = Color(0xFFEF4444), center = Offset(endX, endY), radius = 8f)
+
+                // Driving car position animation representation along the route line
+                val currentCarOffset = when (activeJobState) {
+                    is ActiveJobState.EnRouteToPickup -> {
+                        val progress = activeJobState.progress
+                        Offset(
+                            startX + (endX - startX) * progress * 0.4f,
+                            startY + (endY - startY) * progress * 0.4f
+                        )
+                    }
+                    is ActiveJobState.EnRouteToDropoff -> {
+                        val progress = activeJobState.progress
+                        Offset(
+                            startX + (endX - startX) * (0.4f + progress * 0.6f),
+                            startY + (endY - startY) * (0.4f + progress * 0.6f)
+                        )
+                    }
+                    else -> Offset(startX, startY)
+                }
+
+                // Pulsating glow ring for car GPS point
+                drawCircle(color = MetallicGold.copy(alpha = 0.3f), center = currentCarOffset, radius = pulseSize)
+                drawCircle(color = MetallicGold, center = currentCarOffset, radius = 6f)
+            } else {
+                // Idle roaming tracking pulsing marker dot at screen center
+                val centerOffset = Offset(w * 0.5f, h * 0.5f)
+                drawCircle(color = MetallicGold.copy(alpha = 0.25f), center = centerOffset, radius = pulseSize)
+                drawCircle(color = MetallicGold, center = centerOffset, radius = 6f)
             }
         }
     }

@@ -1,6 +1,6 @@
 {
-  "name": "Shri Krishna",
-  "description": "An elegant and fully functional driver companion with realtime navigation simulation, shift logging, earnings metrics, and persistent local job history.",
+  "name": "UNOXIA Driver",
+  "description": "Premium, production-ready Android Kotlin Driver Companion Application for UNOXIA GROUP Platform featuring professional Slate & Indigo/Teal styling, offline analytics, maps, support hubs, and comprehensive driver welfare systems.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

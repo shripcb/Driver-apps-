@@ -208,10 +208,107 @@ class DriverViewModel(application: Application) : AndroidViewModel(application) 
             vehicleModel = "Toyota Prius Prime (Silver)",
             licensePlate = "DRV-137X",
             rating = 4.95f,
-            level = "Gold Partner"
+            level = "Platinum Partner"
         )
     )
     val profile: StateFlow<DriverProfile> = _profile.asStateFlow()
+
+    // UNOXIA GROUP Welfare & Welfare Systems States
+    private val _walletBalance = MutableStateFlow(12450.75)
+    val walletBalance: StateFlow<Double> = _walletBalance.asStateFlow()
+
+    private val _pfBalanceEmployee = MutableStateFlow(45200.00)
+    val pfBalanceEmployee: StateFlow<Double> = _pfBalanceEmployee.asStateFlow()
+
+    private val _pfBalanceEmployer = MutableStateFlow(48500.00)
+    val pfBalanceEmployer: StateFlow<Double> = _pfBalanceEmployer.asStateFlow()
+
+    private val _pensionContribution = MutableStateFlow(18320.00)
+    val pensionContribution: StateFlow<Double> = _pensionContribution.asStateFlow()
+
+    private val _pensionProjected = MutableStateFlow(325000.00)
+    val pensionProjected: StateFlow<Double> = _pensionProjected.asStateFlow()
+
+    private val _unoxiaPassRemainingDays = MutableStateFlow(14)
+    val unoxiaPassRemainingDays: StateFlow<Int> = _unoxiaPassRemainingDays.asStateFlow()
+
+    private val _referralCode = MutableStateFlow("UNOX-8819-GOLD")
+    val referralCode: StateFlow<String> = _referralCode.asStateFlow()
+
+    private val _referralEarnings = MutableStateFlow(4500.00)
+    val referralEarnings: StateFlow<Double> = _referralEarnings.asStateFlow()
+
+    private val _referralCount = MutableStateFlow(9)
+    val referralCount: StateFlow<Int> = _referralCount.asStateFlow()
+
+    private val _driverXP = MutableStateFlow(780) // Out of 1000 for Diamond Level
+    val driverXP: StateFlow<Int> = _driverXP.asStateFlow()
+
+    private val _driverRank = MutableStateFlow("Platinum") // Bronze, Silver, Gold, Platinum, Diamond
+    val driverRank: StateFlow<String> = _driverRank.asStateFlow()
+
+    // Documents & Expiries (Unoxia Quality Controls)
+    val aadhaarVerified = MutableStateFlow(true)
+    val panVerified = MutableStateFlow(true)
+    val dlVerified = MutableStateFlow(true)
+    val rcVerified = MutableStateFlow(true)
+    val insuranceVerified = MutableStateFlow(true)
+    val pucVerified = MutableStateFlow(true)
+
+    // Security & Safety System
+    val faceVerified = MutableStateFlow(true) // require verification
+    val isSOSActive = MutableStateFlow(false)
+    val fraudRiskScore = MutableStateFlow(2) // 2% Low
+    val speedLimitAlert = MutableStateFlow(false)
+
+    // Fleet Linking
+    val fleetOwnerName = MutableStateFlow("UNOXIA West Fleet Ltd.")
+    val fleetOwnerCutPercent = MutableStateFlow(10) // 10%
+
+    // AI Diagnostics
+    val forecastedEarnings = MutableStateFlow(1850.00) // Tomorrow forecasted
+    val demandPredictScore = MutableStateFlow("HIGH SURGE") // Demand levels
+
+    // Offline caching queues count
+    val offlineSyncQueueSize = MutableStateFlow(0)
+
+    // Helper functions to manage the states of UNOXIA platform
+    fun triggerSOS() {
+        isSOSActive.value = !isSOSActive.value
+    }
+
+    fun triggerFaceCheckVerification(onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            delay(1500)
+            faceVerified.value = true
+            onComplete(true)
+        }
+    }
+
+    fun purchaseOrRenewPass() {
+        _unoxiaPassRemainingDays.value = 30
+        _walletBalance.value = (_walletBalance.value - 499.0).coerceAtLeast(0.0)
+    }
+
+    fun requestInstantPayout(amount: Double) {
+        if (_walletBalance.value >= amount) {
+            _walletBalance.value -= amount
+        }
+    }
+
+    fun addMockFunds(amount: Double) {
+        _walletBalance.value += amount
+    }
+
+    fun incrementXP(amount: Int) {
+        val total = _driverXP.value + amount
+        if (total >= 1000) {
+            _driverXP.value = total - 1000
+            _driverRank.value = "Diamond"
+        } else {
+            _driverXP.value = total
+        }
+    }
 
     // Core Timers / Coroutine jobs
     private var onlineTimerJob: Job? = null
